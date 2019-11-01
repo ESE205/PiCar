@@ -16,20 +16,20 @@ class PiCar:
 
     _simulated_hardware = None
 
-    _motor_enable, _motor_pin_1, _motor_pin_2, _motor_pwm = None
+    _motor_enable, _motor_pin_1, _motor_pin_2, _motor_pwm = (None, None, None, None)
 
     _servo_global_pwm = None
 
-    _servo_nod_pin, _servo_nod_pwm = None
+    _servo_nod_pin, _servo_nod_pwm = (None, None)
     _servo_nod_left, _servo_nod_middle, _servo_nod_right = (280,370,500)
 
-    _servo_swivel_pin, _servo_swivel_pwm = None
+    _servo_swivel_pin, _servo_swivel_pwm = (None, None)
     _servo_swivel_left, _servo_swivel_middle, _servo_swivel_right = (295,425,662)
     
-    _servo_steer_pin, _servo_steer_pwm = None
+    _servo_steer_pin, _servo_steer_pwm = (None, None)
     _servo_steer_left, _servo_steer_middle, _servo_steer_right = (140,310,476)
 
-    _ultrasonic_trigger, _ultrasonic_echo = None
+    _ultrasonic_trigger, _ultrasonic_echo = (None, None)
 
 
     """
