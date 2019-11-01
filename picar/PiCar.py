@@ -21,13 +21,13 @@ class PiCar:
     _servo_global_pwm = None
 
     _servo_nod_pin, _servo_nod_pwm = (None, None)
-    _servo_nod_left, _servo_nod_middle, _servo_nod_right = (280,370,500)
+    _servo_nod_left, _servo_nod_middle, _servo_nod_right = (295,425,662)
 
     _servo_swivel_pin, _servo_swivel_pwm = (None, None)
-    _servo_swivel_left, _servo_swivel_middle, _servo_swivel_right = (295,425,662)
+    _servo_swivel_left, _servo_swivel_middle, _servo_swivel_right = (140,310,476)
     
     _servo_steer_pin, _servo_steer_pwm = (None, None)
-    _servo_steer_left, _servo_steer_middle, _servo_steer_right = (140,310,476)
+    _servo_steer_left, _servo_steer_middle, _servo_steer_right = (280,370,500)
 
     _ultrasonic_trigger, _ultrasonic_echo = (None, None)
 
@@ -144,7 +144,7 @@ class PiCar:
     value (int): between -10 and 10, -10 being max down, 0 being center, and 10 being max up
     """
     def set_nod_servo(self, value, raw=False):
-        if raw:
+        if raw and not self._simulated_hardware:
             self._servo_global_pwm.set_pwm(self._servo_nod_pin, duty_cycle)
             return
         is_left, amount = (value < 0, abs(value))
@@ -162,7 +162,7 @@ class PiCar:
     value: int between -10 and 10, -10 being max left, 0 being center, and 10 being max right
     """
     def set_swivel_servo(self, value, raw=False):
-        if raw:
+        if raw and not self._simulated_hardware:
             self._servo_global_pwm.set_pwm(self._servo_swivel_pin, duty_cycle)
             return
         is_left, amount = (value < 0, abs(value))
@@ -171,7 +171,6 @@ class PiCar:
             if is_left else
             (self._servo_swivel_right - self._servo_swivel_middle) * amount / 10 + self._servo_swivel_middle
         )
-        print(duty_cycle)
         if self._simulated_hardware:
             _servo_swivel_pwm.ChangeDutyCycle(duty_cycle)
         else:
@@ -181,7 +180,7 @@ class PiCar:
     value: int between -10 and 10, -10 being max left, 0 being center, and 10 being max right
     """
     def set_steer_servo(self, value, raw=False):
-        if raw:
+        if raw and not self._simulated_hardware:
             self._servo_global_pwm.set_pwm(self._servo_steer_pin, duty_cycle)
             return
         is_left, amount = (value < 0, abs(value))
