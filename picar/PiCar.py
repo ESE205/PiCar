@@ -114,8 +114,8 @@ class PiCar:
     Will Setup Pins 
     """
     def _init_car(self):
-        _servo_global_pwm = PWM_HAT.PCA9685()
-        _servo_global_pwm.set_pwm_freq(60)
+        self._servo_global_pwm = PWM_HAT.PCA9685()
+        self._servo_global_pwm.set_pwm_freq(60)
 
         self._motor_pwm = GPIO.PWM(self._motor_enable, 1000)
         self._motor_pwm.start(0)
@@ -205,3 +205,15 @@ class PiCar:
         echo_end = time.time()
         # compute one way distance in cm from a two way time in seconds
         return (echo_end - echo_start) * 340 * 100 / 2;
+    
+    def __repr__(self):
+        rep = "=== PiCar Instance ===\n"
+        rep += "Motor:\n"
+        rep += f"Enable Pin: {self._motor_enable} Pin 1: {self._motor_pin_1} Pin 2:{self._motor_pin_2}\n"
+        rep += "---------------------\n"
+        rep += "Servos:\n"
+        rep += f"Nod Pin: {self._servo_nod_pin} Swivel Pin: {self._servo_swivel_pin} Steer Pin: {self._servo_steer_pin}\n"
+        rep += "---------------------\n"
+        rep += "Ultrasonic:\n"
+        rep += f"Trigger Pin: {self._ultrasonic_trigger} Echo Pin: {self._ultrasonic_echo}\n"
+        rep += "=====================\n"
