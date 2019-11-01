@@ -148,7 +148,7 @@ class PiCar:
         duty_cycle = (
             self._servo_nod_middle - (self._servo_nod_middle - self._servo_nod_left) * amount / 10 
             if is_left else
-            (self._servo_nod_right - self._servo_nod_middle) * amount / 10 + self._nod_steer_middle
+            (self._servo_nod_right - self._servo_nod_middle) * amount / 10 + self._servo_nod_middle
         )
         if self._simulated_hardware:
             _servo_nod_pwm.ChangeDutyCycle(duty_cycle)
