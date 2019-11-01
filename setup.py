@@ -8,7 +8,7 @@ with open("requirements.txt", "r") as req:
 
 setuptools.setup(
     name="picar",
-    version="0.1.4",
+    version="0.1.5",
     author="Ethan Shry",
     author_email="ehshry@gmail.com",
     description="Platform to interface with Adeept Mars Rover for ESE 205",

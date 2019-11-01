@@ -39,7 +39,7 @@ class PiCar:
     ---------------------------
     mock_car: True for simulated hardware, False to run on actual PiCar
     pins: List of Custom pins to be used in simulated hardware, in following order:
-    (motor_pin_1, motor_pin_2, motor_enable, servo_nod, servo_swivel, servo_steer, ultrasonic_trigger, ultrasonic_echo)
+    (motor_enable, motor_pin_1, motor_pin_2, servo_nod, servo_swivel, servo_steer, ultrasonic_trigger, ultrasonic_echo)
     """
     def __init__(self, mock_car=True, pins=None):
 
@@ -59,7 +59,7 @@ class PiCar:
             # specify default pins for real hardware
             if pins is not None:
                 print("Custom pins overridden - not allowed when mock_car is False")
-            pins = (13, 12, 11, 0, 1, 2, 23, 24)
+            pins = (11, 13, 12, 0, 1, 2, 23, 24)
         self._init_pins(pins)
         
         if self._simulated_hardware:
@@ -183,7 +183,7 @@ class PiCar:
         if self._simulated_hardware:
             _servo_steer_pwm.ChangeDutyCycle(duty_cycle)
         else:
-            self._servo_global_pwm.set_pwm(self._servo_steer_pin, 0, duty_cycle)
+            self._servo_global_pwm.set_pwm(self._servo_steer_pin, 0, int(duty_cycle))
 
     """
     Read ultrasonic sensor
@@ -217,3 +217,4 @@ class PiCar:
         rep += "Ultrasonic:\n"
         rep += f"Trigger Pin: {self._ultrasonic_trigger} Echo Pin: {self._ultrasonic_echo}\n"
         rep += "=====================\n"
+        return rep
