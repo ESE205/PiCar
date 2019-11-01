@@ -153,7 +153,7 @@ class PiCar:
         if self._simulated_hardware:
             _servo_nod_pwm.ChangeDutyCycle(duty_cycle)
         else:
-            self._servo_global_pwm.set_pwm(self._servo_nod_pin, 0, duty_cycle)
+            self._servo_global_pwm.set_pwm(self._servo_nod_pin, 0, int(duty_cycle))
     
     """
     value: int between -10 and 10, -10 being max left, 0 being center, and 10 being max right
@@ -168,7 +168,7 @@ class PiCar:
         if self._simulated_hardware:
             _servo_swivel_pwm.ChangeDutyCycle(duty_cycle)
         else:
-            self._servo_global_pwm.set_pwm(self._servo_swivel_pin, 0, duty_cycle)
+            self._servo_global_pwm.set_pwm(self._servo_swivel_pin, 0, int(duty_cycle))
     
     """
     value: int between -10 and 10, -10 being max left, 0 being center, and 10 being max right
