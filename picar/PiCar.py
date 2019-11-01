@@ -82,9 +82,10 @@ class PiCar:
         GPIO.setup(self._motor_pin_2, GPIO.OUT, initial=GPIO.LOW)
 
         # setup servo pins
-        GPIO.setup(self._servo_nod_pin, GPIO.OUT)
-        GPIO.setup(self._servo_swivel_pin, GPIO.OUT)
-        GPIO.setup(self._servo_steer_pin, GPIO.OUT)
+        if self._simulated_hardware:
+            GPIO.setup(self._servo_nod_pin, GPIO.OUT)
+            GPIO.setup(self._servo_swivel_pin, GPIO.OUT)
+            GPIO.setup(self._servo_steer_pin, GPIO.OUT)
 
         # setup ultrasonic pins
         GPIO.setup(self._ultrasonic_trigger, GPIO.OUT, initial=GPIO.LOW)
