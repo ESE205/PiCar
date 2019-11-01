@@ -143,7 +143,10 @@ class PiCar:
     """
     value (int): between -10 and 10, -10 being max down, 0 being center, and 10 being max up
     """
-    def set_nod_servo(self, value):
+    def set_nod_servo(self, value, raw=False):
+        if raw:
+            self._servo_global_pwm.set_pwm(self._servo_nod_pin, duty_cycle)
+            return
         is_left, amount = (value < 0, abs(value))
         duty_cycle = (
             self._servo_nod_middle - (self._servo_nod_middle - self._servo_nod_left) * amount / 10 
@@ -158,13 +161,17 @@ class PiCar:
     """
     value: int between -10 and 10, -10 being max left, 0 being center, and 10 being max right
     """
-    def set_swivel_servo(self, value):
+    def set_swivel_servo(self, value, raw=False):
+        if raw:
+            self._servo_global_pwm.set_pwm(self._servo_swivel_pin, duty_cycle)
+            return
         is_left, amount = (value < 0, abs(value))
         duty_cycle = (
             self._servo_swivel_middle - (self._servo_swivel_middle - self._servo_swivel_left) * amount / 10 
             if is_left else
             (self._servo_swivel_right - self._servo_swivel_middle) * amount / 10 + self._servo_swivel_middle
         )
+        print(duty_cycle)
         if self._simulated_hardware:
             _servo_swivel_pwm.ChangeDutyCycle(duty_cycle)
         else:
@@ -173,7 +180,10 @@ class PiCar:
     """
     value: int between -10 and 10, -10 being max left, 0 being center, and 10 being max right
     """
-    def set_steer_servo(self, value):
+    def set_steer_servo(self, value, raw=False):
+        if raw:
+            self._servo_global_pwm.set_pwm(self._servo_steer_pin, duty_cycle)
+            return
         is_left, amount = (value < 0, abs(value))
         duty_cycle = (
             self._servo_steer_middle - (self._servo_steer_middle - self._servo_steer_left) * amount / 10 
