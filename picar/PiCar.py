@@ -57,7 +57,7 @@ class PiCar:
             pins = ()
         else:
             # specify default pins for real hardware
-            if pins not None:
+            if pins is not None:
                 print("Custom pins overridden - not allowed when mock_car is False")
             pins = (13, 12, 11, 0, 1, 2, 23, 24)
         self._init_pins(pins)
