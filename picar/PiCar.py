@@ -104,6 +104,10 @@ class PiCar:
         self._servo_swivel_pwm = GPIO.PWM(self._servo_swivel_pin, 50)
         self._servo_steer_pwm = GPIO.PWM(self._servo_steer_pin, 50)
 
+        self.override_nod_servo_positions(5, 7.5, 10)
+        self.override_swivel_servo_positions(5, 7.5, 10)
+        self.override_steer_servo_positions(5, 7.5, 10)
+
         self._servo_nod_pwm.start(self._servo_nod_middle)
         self._servo_swivel_pwm.start(self._servo_swivel_middle)
         self._servo_steer_pwm.start(self._servo_steer_middle)
@@ -147,6 +151,23 @@ class PiCar:
             self._servo_steer_pwm.stop()
 
     """
+    Provide alternate nod servo positions
+    Note: when setting servo positon, values between left and middle or left and right are linearly interpolated
+    left (int): servo duty cycle for left position
+    middle (int): servo duty cycle for middle position
+    right (int): servo duty cycle for right position
+    """
+
+    def override_nod_servo_positions(self, left, middle, right):
+        if False in [isinstance(x, int) || isinstance(x, float) for x in (left, middle, right)]:
+            raise SystemExit(
+                f"All args must be integer values, expected int, int, int, found: {type(left)}, {type(middle)}, {type(right)}"
+            )
+        self._servo_nod_left = left
+        self._servo_nod_middle = middle
+        self._servo_nod_right = right
+
+    """
     value (int): between -10 and 10, -10 being max down, 0 being center, and 10 being max up
     raw (int): only to be used for TA debugging
     """
@@ -169,6 +190,23 @@ class PiCar:
             self._servo_global_pwm.set_pwm(self._servo_nod_pin, 0, int(duty_cycle))
 
     """
+    Provide alternate swivel servo positions
+    Note: when setting servo positon, values between left and middle or left and right are linearly interpolated
+    left (int): servo duty cycle for left position
+    middle (int): servo duty cycle for middle position
+    right (int): servo duty cycle for right position
+    """
+
+    def override_swivel_servo_positions(self, left, middle, right):
+        if False in [isinstance(x, int) || isinstance(x, float) for x in (left, middle, right)]:
+            raise SystemExit(
+                f"All args must be integer values, expected int, int, int, found: {type(left)}, {type(middle)}, {type(right)}"
+            )
+        self._servo_swivel_left = left
+        self._servo_swivel_middle = middle
+        self._servo_swivel_right = right
+
+    """
     value (int): between -10 and 10, -10 being max left, 0 being center, and 10 being max right
     raw (int): only to be used for TA debugging
     """
@@ -189,6 +227,23 @@ class PiCar:
             _servo_swivel_pwm.ChangeDutyCycle(duty_cycle)
         else:
             self._servo_global_pwm.set_pwm(self._servo_swivel_pin, 0, int(duty_cycle))
+
+    """
+    Provide alternate steer servo positions
+    Note: when setting servo positon, values between left and middle or left and right are linearly interpolated
+    left (int): servo duty cycle for left position
+    middle (int): servo duty cycle for middle position
+    right (int): servo duty cycle for right position
+    """
+
+    def override_steer_servo_positions(self, left, middle, right):
+        if False in [isinstance(x, int) || isinstance(x, float) for x in (left, middle, right)]:
+            raise SystemExit(
+                f"All args must be integer values, expected int, int, int, found: {type(left)}, {type(middle)}, {type(right)}"
+            )
+        self._servo_steer_left = left
+        self._servo_steer_middle = middle
+        self._servo_steer_right = right
 
     """
     Set the steer servo 
