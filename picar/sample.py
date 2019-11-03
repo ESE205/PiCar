@@ -81,4 +81,21 @@ mtr_pwm.ChangeDutyCycle(0)
 sleep(0.5)
 mtr_pwm.stop()
 
+"""
+ADC
+"""
+
+import time
+
+import Adafruit_GPIO.SPI as SPI
+import Adafruit_MCP3008
+
+# Note we are using SPI device 1, not SPI Device 0
+SPI_PORT = 0
+SPI_DEVICE = 1
+mcp = Adafruit_MCP3008.MCP3008(spi=SPI.SpiDev(SPI_PORT, SPI_DEVICE))
+while True:
+    print(mcp.read_adc(0))
+    time.sleep(1)
+
 GPIO.cleanup()

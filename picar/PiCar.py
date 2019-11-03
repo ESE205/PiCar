@@ -29,6 +29,8 @@ class PiCar:
 
     _ultrasonic_trigger, _ultrasonic_echo = (None, None)
 
+    adc = None
+
     """
     Initialize the PiCar Module
     ---------------------------
@@ -54,7 +56,7 @@ class PiCar:
         elif mock_car is True:
             # specify default pins for mock hardware
             # TODO find pins
-            pins = ()
+            pins = (31, 33, 35, 11, 13, 15, 16, 18)
         else:
             # specify default pins for real hardware
             if pins is not None:
@@ -66,6 +68,8 @@ class PiCar:
             self._init_mock_car()
         else:
             self._init_car()
+        
+        self.adc = Adafruit_MCP3008.MCP3008(spi=SPI.SpiDev(0, 1))
 
         # Motor are same from car to test, so initialize globally
 
@@ -159,7 +163,7 @@ class PiCar:
     """
 
     def override_nod_servo_positions(self, left, middle, right):
-        if False in [isinstance(x, int) || isinstance(x, float) for x in (left, middle, right)]:
+        if not self._simulated_hardware or False in [isinstance(x, int) || isinstance(x, float) for x in (left, middle, right)]:
             raise SystemExit(
                 f"All args must be integer values, expected int, int, int, found: {type(left)}, {type(middle)}, {type(right)}"
             )
@@ -198,7 +202,7 @@ class PiCar:
     """
 
     def override_swivel_servo_positions(self, left, middle, right):
-        if False in [isinstance(x, int) || isinstance(x, float) for x in (left, middle, right)]:
+        if not self._simulated_hardware or False in [isinstance(x, int) || isinstance(x, float) for x in (left, middle, right)]:
             raise SystemExit(
                 f"All args must be integer values, expected int, int, int, found: {type(left)}, {type(middle)}, {type(right)}"
             )
@@ -237,7 +241,7 @@ class PiCar:
     """
 
     def override_steer_servo_positions(self, left, middle, right):
-        if False in [isinstance(x, int) || isinstance(x, float) for x in (left, middle, right)]:
+        if not self._simulated_hardware or False in [isinstance(x, int) || isinstance(x, float) for x in (left, middle, right)]:
             raise SystemExit(
                 f"All args must be integer values, expected int, int, int, found: {type(left)}, {type(middle)}, {type(right)}"
             )

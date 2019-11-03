@@ -33,3 +33,6 @@ def execute_test(pi_car_instance: PiCar):
     wait(0.5)
     pi_car_instance.set_steer_servo(0)
     wait(0.5)
+
+    print("testing ADC- reading from channel 0, ensure value is as you expect")
+    print(pi_car_instance.adc.read_adc(0))
