@@ -163,7 +163,7 @@ class PiCar:
     """
 
     def override_nod_servo_positions(self, left, middle, right):
-        if not self._simulated_hardware or False in [isinstance(x, int) || isinstance(x, float) for x in (left, middle, right)]:
+        if not self._simulated_hardware or False in [isinstance(x, int) or isinstance(x, float) for x in (left, middle, right)]:
             raise SystemExit(
                 f"All args must be integer values, expected int, int, int, found: {type(left)}, {type(middle)}, {type(right)}"
             )
@@ -202,7 +202,7 @@ class PiCar:
     """
 
     def override_swivel_servo_positions(self, left, middle, right):
-        if not self._simulated_hardware or False in [isinstance(x, int) || isinstance(x, float) for x in (left, middle, right)]:
+        if not self._simulated_hardware or False in [isinstance(x, int) or isinstance(x, float) for x in (left, middle, right)]:
             raise SystemExit(
                 f"All args must be integer values, expected int, int, int, found: {type(left)}, {type(middle)}, {type(right)}"
             )
@@ -241,7 +241,7 @@ class PiCar:
     """
 
     def override_steer_servo_positions(self, left, middle, right):
-        if not self._simulated_hardware or False in [isinstance(x, int) || isinstance(x, float) for x in (left, middle, right)]:
+        if not self._simulated_hardware or False in [isinstance(x, int) or isinstance(x, float) for x in (left, middle, right)]:
             raise SystemExit(
                 f"All args must be integer values, expected int, int, int, found: {type(left)}, {type(middle)}, {type(right)}"
             )
