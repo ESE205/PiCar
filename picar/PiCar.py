@@ -1,8 +1,19 @@
 import RPi.GPIO as GPIO
 import time
+
 import Adafruit_PCA9685 as PWM_HAT
 import Adafruit_GPIO.SPI as SPI
 import Adafruit_MCP3008
+import pkg_resources
+
+
+"""
+FEEDBACK
+
+getters for state
+
+
+"""
 
 """
 Class to interface with PiCar Hardware
@@ -16,16 +27,24 @@ class PiCar:
 
     _motor_enable, _motor_pin_1, _motor_pin_2, _motor_pwm = (None, None, None, None)
 
+    motor_state = 0
+
     _servo_global_pwm = None
 
     _servo_nod_pin, _servo_nod_pwm = (None, None)
     _servo_nod_left, _servo_nod_middle, _servo_nod_right = (295, 425, 662)
 
+    nod_servo_state = 0
+
     _servo_swivel_pin, _servo_swivel_pwm = (None, None)
     _servo_swivel_left, _servo_swivel_middle, _servo_swivel_right = (140, 310, 476)
 
+    swivel_servo_state = 0
+
     _servo_steer_pin, _servo_steer_pwm = (None, None)
     _servo_steer_left, _servo_steer_middle, _servo_steer_right = (280, 370, 500)
+
+    steer_servo_state = 0
 
     _ultrasonic_trigger, _ultrasonic_echo = (None, None)
 
@@ -55,7 +74,6 @@ class PiCar:
                 )
         elif mock_car is True:
             # specify default pins for mock hardware
-            # TODO find pins
             pins = (31, 33, 35, 11, 13, 15, 16, 18)
         else:
             # specify default pins for real hardware
@@ -68,8 +86,15 @@ class PiCar:
             self._init_mock_car()
         else:
             self._init_car()
-        
+
         self.adc = Adafruit_MCP3008.MCP3008(spi=SPI.SpiDev(0, 1))
+
+        # set initial component states
+        self.set_motor(0)
+
+        self.set_nod_servo(0)
+        self.set_steer_servo(0)
+        self.set_nod_servo(0)
 
         # Motor are same from car to test, so initialize globally
 
@@ -108,9 +133,9 @@ class PiCar:
         self._servo_swivel_pwm = GPIO.PWM(self._servo_swivel_pin, 50)
         self._servo_steer_pwm = GPIO.PWM(self._servo_steer_pin, 50)
 
-        self.override_nod_servo_positions(5, 7.5, 10)
-        self.override_swivel_servo_positions(5, 7.5, 10)
-        self.override_steer_servo_positions(5, 7.5, 10)
+        self.configure_nod_servo_positions(5, 7.5, 10)
+        self.configure_swivel_servo_positions(5, 7.5, 10)
+        self.configure_steer_servo_positions(5, 7.5, 10)
 
         self._servo_nod_pwm.start(self._servo_nod_middle)
         self._servo_swivel_pwm.start(self._servo_swivel_middle)
@@ -144,7 +169,19 @@ class PiCar:
         self._motor_pwm.ChangeDutyCycle(duty_cycle)
 
     """
-    Stop the hardware - will kill PWM instance for all motors and servos
+    Reset the hardware - will set all motors and servos to neutral positions
+    """
+
+    def reset(self):
+
+        self.set_motor(0)
+
+        self.set_nod_servo(0)
+        self.set_steer_servo(0)
+        self.set_swivel_servo(0)
+
+    """
+    Stop the hardware - will kill PWM instance for all motors and servos, and cleanup GPIO
     """
 
     def stop(self):
@@ -154,6 +191,8 @@ class PiCar:
             self._servo_swivel_pwm.stop()
             self._servo_steer_pwm.stop()
 
+        GPIO.cleanup()
+
     """
     Provide alternate nod servo positions
     Note: when setting servo positon, values between left and middle or left and right are linearly interpolated
@@ -162,8 +201,10 @@ class PiCar:
     right (int): servo duty cycle for right position
     """
 
-    def override_nod_servo_positions(self, left, middle, right):
-        if not self._simulated_hardware or False in [isinstance(x, int) or isinstance(x, float) for x in (left, middle, right)]:
+    def configure_nod_servo_positions(self, left, middle, right):
+        if not self._simulated_hardware or False in [
+            isinstance(x, int) or isinstance(x, float) for x in (left, middle, right)
+        ]:
             raise SystemExit(
                 f"All args must be integer values, expected int, int, int, found: {type(left)}, {type(middle)}, {type(right)}"
             )
@@ -177,9 +218,24 @@ class PiCar:
     """
 
     def set_nod_servo(self, value, raw=False):
+        # handle special input cases
         if raw and not self._simulated_hardware:
             self._servo_global_pwm.set_pwm(self._servo_nod_pin, duty_cycle)
             return
+        if not (isinstance(value, int) or isinstance(value, float)):
+            raise SystemExit(
+                f"value argument must be numeric between -10 and 10. Expected int or float, found {type(value)}"
+            )
+
+        # cast value to correct range
+        safe_value = max(min(10, value), -10)
+        if safe_value != value:
+            print(
+                f"WARNING: value passed to set_nod_servo exceeds expected range. Expected -10 <= value <= 10, found {value}"
+            )
+            print(f"Casting value to {safe_value}")
+        value = safe_value
+
         is_left, amount = (value < 0, abs(value))
         duty_cycle = (
             self._servo_nod_middle
@@ -193,6 +249,8 @@ class PiCar:
         else:
             self._servo_global_pwm.set_pwm(self._servo_nod_pin, 0, int(duty_cycle))
 
+        self.nod_servo_state = value
+
     """
     Provide alternate swivel servo positions
     Note: when setting servo positon, values between left and middle or left and right are linearly interpolated
@@ -201,8 +259,10 @@ class PiCar:
     right (int): servo duty cycle for right position
     """
 
-    def override_swivel_servo_positions(self, left, middle, right):
-        if not self._simulated_hardware or False in [isinstance(x, int) or isinstance(x, float) for x in (left, middle, right)]:
+    def configure_swivel_servo_positions(self, left, middle, right):
+        if not self._simulated_hardware or False in [
+            isinstance(x, int) or isinstance(x, float) for x in (left, middle, right)
+        ]:
             raise SystemExit(
                 f"All args must be integer values, expected int, int, int, found: {type(left)}, {type(middle)}, {type(right)}"
             )
@@ -216,9 +276,24 @@ class PiCar:
     """
 
     def set_swivel_servo(self, value, raw=False):
+        # handle special input cases
         if raw and not self._simulated_hardware:
             self._servo_global_pwm.set_pwm(self._servo_swivel_pin, duty_cycle)
             return
+        if not (isinstance(value, int) or isinstance(value, float)):
+            raise SystemExit(
+                f"value argument must be numeric between -10 and 10. Expected int or float, found {type(value)}"
+            )
+
+        # cast value to correct range
+        safe_value = max(min(10, value), -10)
+        if safe_value != value:
+            print(
+                f"WARNING: value passed to set_swivel_servo exceeds expected range. Expected -10 <= value <= 10, found {value}"
+            )
+            print(f"Casting value to {safe_value}")
+        value = safe_value
+
         is_left, amount = (value < 0, abs(value))
         duty_cycle = (
             self._servo_swivel_middle
@@ -232,6 +307,8 @@ class PiCar:
         else:
             self._servo_global_pwm.set_pwm(self._servo_swivel_pin, 0, int(duty_cycle))
 
+        self.swivel_servo_state = value
+
     """
     Provide alternate steer servo positions
     Note: when setting servo positon, values between left and middle or left and right are linearly interpolated
@@ -240,8 +317,10 @@ class PiCar:
     right (int): servo duty cycle for right position
     """
 
-    def override_steer_servo_positions(self, left, middle, right):
-        if not self._simulated_hardware or False in [isinstance(x, int) or isinstance(x, float) for x in (left, middle, right)]:
+    def configure_steer_servo_positions(self, left, middle, right):
+        if not self._simulated_hardware or False in [
+            isinstance(x, int) or isinstance(x, float) for x in (left, middle, right)
+        ]:
             raise SystemExit(
                 f"All args must be integer values, expected int, int, int, found: {type(left)}, {type(middle)}, {type(right)}"
             )
@@ -256,9 +335,24 @@ class PiCar:
     """
 
     def set_steer_servo(self, value, raw=False):
+        # handle special input cases
         if raw and not self._simulated_hardware:
             self._servo_global_pwm.set_pwm(self._servo_steer_pin, duty_cycle)
             return
+        if not (isinstance(value, int) or isinstance(value, float)):
+            raise SystemExit(
+                f"value argument must be numeric between -10 and 10. Expected int or float, found {type(value)}"
+            )
+
+        # cast value to correct range
+        safe_value = max(min(10, value), -10)
+        if safe_value != value:
+            print(
+                f"WARNING: value passed to set_steer_servo exceeds expected range. Expected -10 <= value <= 10, found {value}"
+            )
+            print(f"Casting value to {safe_value}")
+        value = safe_value
+
         is_left, amount = (value < 0, abs(value))
         duty_cycle = (
             self._servo_steer_middle
@@ -271,6 +365,8 @@ class PiCar:
             _servo_steer_pwm.ChangeDutyCycle(duty_cycle)
         else:
             self._servo_global_pwm.set_pwm(self._servo_steer_pin, 0, int(duty_cycle))
+
+        self.steer_servo_state = value
 
     """
     Read ultrasonic sensor
@@ -301,7 +397,65 @@ class PiCar:
     """
 
     def __repr__(self):
-        rep = "=== PiCar Instance ===\n"
+        with open("../VERSION", "r") as ver:
+            version = ver.read().strip()
+        print("ok")
+        entries = [
+            ["State"],
+            ["Motor", self.motor_state],
+            ["Nod Servo", self.nod_servo_state],
+            ["Swivel Servo", self.swivel_servo_state],
+            ["Steer Servo", self.steer_servo_state],
+            ["Configuration"],
+            [
+                "Nod Servo (l, m, r)",
+                self._servo_nod_left,
+                self._servo_nod_middle,
+                self._servo_nod_right,
+            ],
+            [
+                "Swivel Servo (l, m, r)",
+                self._servo_swivel_left,
+                self._servo_swivel_middle,
+                self._servo_swivel_right,
+            ],
+            [
+                "Steer Servo (l, m, r)",
+                self._servo_steer_left,
+                self._servo_steer_middle,
+                self._servo_steer_right,
+            ],
+            ["Pins"],
+            ["Motor Enable", self._motor_enable],
+            ["Motor 1", self._motor_pin_1],
+            ["Motor 2", self._motor_pin_2],
+            ["Nod Servo", self._servo_nod_pin],
+            ["Swivel Servo", self._servo_swivel_pin],
+            ["Steer Servo", self._servo_steer_pin],
+            ["Trigger", self._ultrasonic_trigger],
+            ["Echo", self._ultrasonic_echo],
+        ]
+
+        rep = f"PiCar {version}:\n"
+
+        col_sizes = compute_column_lengths(entries)
+
+        for entry in entries:
+            if len(entry) == 1:
+                rep += "-" * sum(col_sizes)
+                rep += "\n"
+                rep += f"{entry[0]}\n"
+                rep += "-" * sum(col_sizes)
+                rep += "\n"
+            else:
+                for index in range(0, len(entry)):
+                    rep += str(entry[index])
+                    rep += (col_sizes[index] - len(str(entry[index]))) * " "
+                rep += "\n"
+
+        rep += "-" * sum(col_sizes)
+        """
+        rep += "---------------------\n"
         rep += "Motor:\n"
         rep += f"Enable Pin: {self._motor_enable} Pin 1: {self._motor_pin_1} Pin 2:{self._motor_pin_2}\n"
         rep += "---------------------\n"
@@ -311,4 +465,26 @@ class PiCar:
         rep += "Ultrasonic:\n"
         rep += f"Trigger Pin: {self._ultrasonic_trigger} Echo Pin: {self._ultrasonic_echo}\n"
         rep += "=====================\n"
+        """
+
         return rep
+
+
+def compute_column_lengths(data):
+    lengths = []
+    index = 0
+    has_entity = True
+    while has_entity:
+        has_entity = False
+        max_len = 0
+        for item in data:
+            if len(item) > index:
+                has_entity = True
+                if len(str(item[index])) > max_len:
+                    max_len = len(str(item[index]))
+        max_len += 4  # pad each column by 4 spaces
+        max_len = max_len + 4 - (max_len % 4)  # round to nearest tab
+        lengths.append(max_len)
+        index += 1
+
+    return lengths
