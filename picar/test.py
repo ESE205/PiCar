@@ -19,14 +19,14 @@ def execute_test(pi_car_instance: PiCar):
     wait(0.5)
     pi_car_instance.set_nod_servo(0)
     wait(0.5)
-    print("test nod servo: left -> right -> center")
+    print("test swivel servo: left -> right -> center")
     pi_car_instance.set_swivel_servo(-10)
     wait(0.5)
     pi_car_instance.set_swivel_servo(10)
     wait(0.5)
     pi_car_instance.set_swivel_servo(0)
     wait(0.5)
-    print("test nod servo: left -> right -> center")
+    print("test steer servo: left -> right -> center")
     pi_car_instance.set_steer_servo(-10)
     wait(0.5)
     pi_car_instance.set_steer_servo(10)
@@ -36,3 +36,6 @@ def execute_test(pi_car_instance: PiCar):
 
     print("testing ADC- reading from channel 0, ensure value is as you expect")
     print(pi_car_instance.adc.read_adc(0))
+
+    print("testing ultrasonic, ensure distance is reasonable")
+    print(car.read_distance())

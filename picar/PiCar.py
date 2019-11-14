@@ -397,7 +397,7 @@ class PiCar:
     """
 
     def __repr__(self):
-        with open("../VERSION", "r") as ver:
+        with open("./VERSION", "r") as ver:
             version = ver.read().strip()
         print("ok")
         entries = [
