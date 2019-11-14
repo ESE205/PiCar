@@ -245,7 +245,7 @@ class PiCar:
             + self._servo_nod_middle
         )
         if self._simulated_hardware:
-            _servo_nod_pwm.ChangeDutyCycle(duty_cycle)
+            self._servo_nod_pwm.ChangeDutyCycle(duty_cycle)
         else:
             self._servo_global_pwm.set_pwm(self._servo_nod_pin, 0, int(duty_cycle))
 
@@ -303,7 +303,7 @@ class PiCar:
             + self._servo_swivel_middle
         )
         if self._simulated_hardware:
-            _servo_swivel_pwm.ChangeDutyCycle(duty_cycle)
+            self._servo_swivel_pwm.ChangeDutyCycle(duty_cycle)
         else:
             self._servo_global_pwm.set_pwm(self._servo_swivel_pin, 0, int(duty_cycle))
 
@@ -362,7 +362,7 @@ class PiCar:
             + self._servo_steer_middle
         )
         if self._simulated_hardware:
-            _servo_steer_pwm.ChangeDutyCycle(duty_cycle)
+            self._servo_steer_pwm.ChangeDutyCycle(duty_cycle)
         else:
             self._servo_global_pwm.set_pwm(self._servo_steer_pin, 0, int(duty_cycle))
 

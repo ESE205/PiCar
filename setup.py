@@ -6,9 +6,12 @@ with open("README.md", "r") as fh:
 with open("requirements.txt", "r") as req:
     requirements = req.readlines()
 
+with open("VERSION", "r") as req:
+    version = req.read().strip()
+
 setuptools.setup(
     name="picar",
-    version="0.2.3",
+    version=version,
     author="Ethan Shry",
     author_email="ehshry@gmail.com",
     description="Platform to interface with Adeept Mars Rover for ESE 205",

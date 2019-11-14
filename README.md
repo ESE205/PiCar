@@ -60,7 +60,19 @@ car = PiCar(mock_car=False, pins=None)
 # turn on the DC motor- duty_cycle ranges 0-100, forward is optional but is either True (forward) or False (backward)
 car.set_motor(100)
 
-# set the nod servo position
+# turn DC motor to 50% duty cycle going backwards
+car.set_motor(50, forward=False)
+
+# configure the range on the servos- allows you to tune your testing for your mock hardware
+# specify the duty cycle range for the servos you are using on your test hardware
+# i.e. a servo with duty cycle range of 2-10, with a center at 6
+car.configure_nod_servo_positions(2, 6, 10)
+# i.e. a servo with duty cycle range of 2-12, with a center at 7
+car.configure_swivel_servo_positions(2, 7, 12)
+# i.e. a servo with duty cycle range of 4-12, with a center at 9
+car.configure_steer_servo_positions(4, 9, 12)
+
+# set the servo positions
 # range for servo functions is -10 (down/left) to 10 (up/right) with 0 being center 
 car.set_nod_servo(-10)
 car.set_swivel_servo(0)
@@ -108,6 +120,13 @@ print(car)
 | CS | 10 | CE1 | 26 |
 | DGND | 9 | GND | 6 |
 
+## Ultrasonic
+
+| Ultrasonic Pin Label | Ultrasonic Pin Number | Pi Pin Label | Pi Pin Number |
+|---|---|---|---|
+| Trigger | - | GPIO23 | 16 |
+| Echo | - | GPIO24 | 18 |
+
 # Configuration <a name="Configuration"></a>
 
 There are two main options for configuration of the PiCar module.
@@ -121,9 +140,9 @@ See function documentation for more on how this works.
 ```python
 car = PiCar(mock_car=True)
 
-car.override_nod_servo_positions(left_duty_cycle, middle_duty_cycle, right_duty_cycle)
-car.override_swivel_servo_positions(left_duty_cycle, middle_duty_cycle, right_duty_cycle)
-car.override_steer_servo_positions(left_duty_cycle, middle_duty_cycle, right_duty_cycle)
+car.configure_nod_servo_positions(left_duty_cycle, middle_duty_cycle, right_duty_cycle)
+car.configure_swivel_servo_positions(left_duty_cycle, middle_duty_cycle, right_duty_cycle)
+car.configure_steer_servo_positions(left_duty_cycle, middle_duty_cycle, right_duty_cycle)
 ```
 
 ## Pin Overrides <a name="ConfigurePinOverrides"></a>
@@ -152,7 +171,7 @@ car = PiCar(mock_car=True, pins=pins)
 
 # Function Documentation <a name="FunctionDoc"></a>
 
-## \_\_init\_\_
+## Constructor
 
 Initialize the PiCar Module
 
@@ -212,7 +231,7 @@ car = PiCar()
 # do something with the car
 ```
 ---
-## override_nod_servo_positions
+## configure_nod_servo_positions
 
 Allows user to provide alternate servo positions for nod servo in mock hardware.
 PiCar assumes a default of 5 for left, 7.5 for middle, and 10 for right.
@@ -227,7 +246,7 @@ PiCar assumes a default of 5 for left, 7.5 for middle, and 10 for right.
 
 ```python
 # for a servo with a range 0-14
-car.override_nod_servo_positons(0, 7, 14)
+car.configure_nod_servo_positons(0, 7, 14)
 ```
 ---
 ## set_nod_servo
@@ -236,7 +255,7 @@ Sets the nod servo to the specified relative Duty Cycle.
 
 `set_nod_servo` uses internal left, middle, and right positions and maps the `value` argument to them via linear interpolation. For example, with `left=0, middle=5, right=10` and `value=5`, set_nod_servo will set the nod servo duty cycle to `7.5`, whereas a `value=-5` would yield a duty cycle of `2.5`. 
 
-The left, middle, and right values can be configured via `override_nod_servo_positons`.
+The left, middle, and right values can be configured via `configure_nod_servo_positons`.
 
 *Arguments:*
 
@@ -249,9 +268,9 @@ The left, middle, and right values can be configured via `override_nod_servo_pos
 car.set_nod_servo(10)
 ```
 ---
-## override_swivel_servo_positions
+## configure_swivel_servo_positions
 
-See `override_nod_servo_positons`
+See `configure_nod_servo_positons`
 
 ---
 ## set_swivel_servo
@@ -259,9 +278,9 @@ See `override_nod_servo_positons`
 See `set_nod_servo`
 
 ---
-## override_steer_servo_positions
+## configure_steer_servo_positions
 
-See `override_nod_servo_positons`
+See `configure_nod_servo_positons`
 
 ---
 ## set_steer_servo
