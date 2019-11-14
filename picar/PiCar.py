@@ -397,9 +397,12 @@ class PiCar:
     """
 
     def __repr__(self):
+        """
+        TODO fix version
         with open("./VERSION", "r") as ver:
             version = ver.read().strip()
         print("ok")
+        """
         entries = [
             ["State"],
             ["Motor", self.motor_state],
@@ -436,7 +439,7 @@ class PiCar:
             ["Echo", self._ultrasonic_echo],
         ]
 
-        rep = f"PiCar {version}:\n"
+        rep = f"PiCar Version 0.2.x:\n"
 
         col_sizes = compute_column_lengths(entries)
 

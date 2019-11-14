@@ -6,7 +6,7 @@ with open("README.md", "r") as fh:
 with open("requirements.txt", "r") as req:
     requirements = req.readlines()
 
-with open("./picar/VERSION", "r") as req:
+with open("./VERSION", "r") as req:
     version = req.read().strip()
 
 setuptools.setup(
