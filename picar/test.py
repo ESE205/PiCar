@@ -38,4 +38,4 @@ def execute_test(pi_car_instance: PiCar):
     print(pi_car_instance.adc.read_adc(0))
 
     print("testing ultrasonic, ensure distance is reasonable")
-    print(car.read_distance())
+    print(pi_car_instance.read_distance())
