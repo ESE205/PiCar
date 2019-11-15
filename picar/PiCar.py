@@ -213,7 +213,7 @@ class PiCar:
     """
 
     def configure_nod_servo_positions(self, left, middle, right):
-        if not self._simulated_hardware or False in [
+        if False in [
             isinstance(x, int) or isinstance(x, float) for x in (left, middle, right)
         ]:
             raise SystemExit(
@@ -272,7 +272,7 @@ class PiCar:
     """
 
     def configure_swivel_servo_positions(self, left, middle, right):
-        if not self._simulated_hardware or False in [
+        if False in [
             isinstance(x, int) or isinstance(x, float) for x in (left, middle, right)
         ]:
             raise SystemExit(
@@ -331,7 +331,7 @@ class PiCar:
     """
 
     def configure_steer_servo_positions(self, left, middle, right):
-        if not self._simulated_hardware or False in [
+        if False in [
             isinstance(x, int) or isinstance(x, float) for x in (left, middle, right)
         ]:
             raise SystemExit(
