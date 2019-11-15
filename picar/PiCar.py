@@ -231,7 +231,7 @@ class PiCar:
     def set_nod_servo(self, value, raw=False):
         # handle special input cases
         if raw and not self._simulated_hardware:
-            self._servo_global_pwm.set_pwm(self._servo_nod_pin, raw)
+            self._servo_global_pwm.set_pwm(self._servo_nod_pin, 0, raw)
             self.nod_servo_state = raw
             return
         if not (isinstance(value, int) or isinstance(value, float)):
@@ -290,7 +290,7 @@ class PiCar:
     def set_swivel_servo(self, value, raw=False):
         # handle special input cases
         if raw and not self._simulated_hardware:
-            self._servo_global_pwm.set_pwm(self._servo_swivel_pin, raw)
+            self._servo_global_pwm.set_pwm(self._servo_swivel_pin, 0, raw)
             self.set_swivel_servo = raw
             return
         if not (isinstance(value, int) or isinstance(value, float)):
@@ -350,7 +350,7 @@ class PiCar:
     def set_steer_servo(self, value, raw=False):
         # handle special input cases
         if raw and not self._simulated_hardware:
-            self._servo_global_pwm.set_pwm(self._servo_steer_pin, raw)
+            self._servo_global_pwm.set_pwm(self._servo_steer_pin, 0, raw)
             self.steer_servo_state = raw
             return
         if not (isinstance(value, int) or isinstance(value, float)):
