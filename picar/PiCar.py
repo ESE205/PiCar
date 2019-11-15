@@ -67,7 +67,10 @@ class PiCar:
 
         print("initializing PiCar...")
 
-        print(f"PiCar mode set to {'MOCK_CAR' if mock_car else 'REAL_CAR'}")
+        if mock_car:
+            print("PiCar mode set to MOCK_CAR")
+        else:
+            print("PiCar mode set to REAL_CAR")
 
         self._simulated_hardware = mock_car
 
