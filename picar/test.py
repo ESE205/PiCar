@@ -39,7 +39,7 @@ def execute_test(pi_car_instance: PiCar):
     )
     print(pi_car_instance.adc.read_adc(0))
     print("testing ADC- reading from channel 7 (switch), ensure value is as you expect")
-    print(pi_car_instance.adc.read_adc(0))
+    print(pi_car_instance.adc.read_adc(7))
 
     print("testing ultrasonic, ensure distance is reasonable")
     print(pi_car_instance.read_distance())

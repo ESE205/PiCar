@@ -82,10 +82,11 @@ car.set_nod_servo(-10)
 car.set_swivel_servo(0)
 car.set_steer_servo(10)
 
-# you also have access to the current servo positions
+# you also have access to the current servo and motor positions
 print(car.nod_servo_state)
 print(car.swivel_servo_state)
 print(car.steer_servo_state)
+print(car.motor_state)
 
 # read ultrasonic distance
 dist = car.read_distance()
