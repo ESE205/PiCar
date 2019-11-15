@@ -2,7 +2,9 @@ import RPi.GPIO as GPIO
 import time
 
 import Adafruit_PCA9685 as PWM_HAT
-import Adafruit_GPIO.SPI as SPI
+
+# import Adafruit_GPIO.SPI as SPI
+from Adafruit_GPIO.GPIO import RPiGPIOAdapter as Adafruit_GPIO_Adapter
 import Adafruit_MCP3008
 import pkg_resources
 
@@ -87,7 +89,16 @@ class PiCar:
         else:
             self._init_car()
 
-        self.adc = Adafruit_MCP3008.MCP3008(spi=SPI.SpiDev(0, 1))
+        # initialize software SPI
+        gpio_adapter = Adafruit_GPIO_Adapter(GPIO, mode=GPIO.BOARD)
+        clk_pin = 40
+        miso_pin = 21
+        mosi_pin = 19
+        cs_pin = 26
+
+        self.adc = Adafruit_MCP3008.MCP3008(
+            clk=clk_pin, cs=cs_pin, miso=miso_pin, mosi=mosi_pin, gpio=gpio_adapter
+        )
 
         # set initial component states
         self.set_motor(0)

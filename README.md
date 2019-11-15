@@ -114,7 +114,7 @@ print(car)
 | VDD | 16 | 3v3 | 1 |
 | VREF | 15 | 3v3 | 1 |
 | AGND | 14 | GND | 6 |
-| CLK | 13 | SCLK | 23 |
+| CLK | 13 | SCLK | 40 |
 | DOUT | 12 | MISO | 21 |
 | DIN | 11 | MOSI | 19 |
 | CS | 10 | CE1 | 26 |
