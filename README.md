@@ -33,7 +33,7 @@ Basic code to test components
 
 ```python
 # import module
-from picar import PiCar, test
+from picar import PiCar, test, configure
 
 # test on actual hardware
 car = PiCar(mock_car=False)
@@ -45,9 +45,13 @@ print(car)
 # WARNING: The car will attempt to drive
 test.execute_test(car)
 
+# configure servo motor positions
+# THIS WILL CREATE A CONIG.txt in the current directory, to use this config, you must execute from the same directory
+configure.configure_car(car)
+
 ```
 
-Quick Rundown of helpful commands:
+Quick rundown of helpful commands:
 ```python
 
 # import PiCar class
@@ -78,6 +82,11 @@ car.set_nod_servo(-10)
 car.set_swivel_servo(0)
 car.set_steer_servo(10)
 
+# you also have access to the current servo positions
+print(car.nod_servo_state)
+print(car.swivel_servo_state)
+print(car.steer_servo_state)
+
 # read ultrasonic distance
 dist = car.read_distance()
 
@@ -89,7 +98,53 @@ car.adc.read_adc(0)
 print(car)
 ```
 
-# Hardware Connecton <a name="Hardware_Connection"></a>
+# PiCar.configure
+The configure module is set up to help handle servo inconsistency across hardware. Running `configure.configure_car` will give you the opportunity to generate a configuraton file with the left, middle, and right servo positions for your specific hardware, which will then be used on initialization of the PiCar module.
+
+```python
+from picar import PiCar, configure
+
+car = PiCar(mock_car=False)
+# you will see default configuration values
+print(car)
+
+configure.configure_car(car)
+# NOTE: this has generated a CONFIG.txt file in your cwd. To use this file in the future, you must run your program from the same cwd.
+
+car = PiCar(mock_car=False)
+# now you should see your custom configuration values
+print(car)
+```
+
+# PiCar.test
+
+The test module is designed to ensure you have everything set up and configured correctly. Running `test.execute_test` will attempt to run through the entire range of functionality of this module, including motor, all three servos, ultrasonic sensor, and adc conversion. Errors or inconsistent behavior in the execution of this function indicates a bigger issue.
+
+```python
+from picar import PiCar, test
+
+car = PiCar(mock_car=True)
+
+# WARNING, the car will attempt to drive
+test.execute_test(car)
+```
+
+# ADC Channels <a name="ADC_Channels"></a>
+
+While the ADC can be used the same way as you would normally interface with an ADC, we have set up the ADC for the PiCar to have specific chanels tied to different functionality.
+
+| ADC Channel | Function |
+|---|---|
+| 0 | Photo Resistor |
+| 1 | - |
+| 2 | - |
+| 3 | - |
+| 4 | - |
+| 5 | - |
+| 6 | - |
+| 7 | On/Off Switch |
+
+# Hardware Connecton for Simulated Hardware <a name="Hardware_Connection"></a>
 
 ## DC Motor
 
@@ -109,6 +164,8 @@ print(car)
 
 ## ADC
 
+**NOTE**: See [ADC Channels](#ADC_Channels) for which channel should be tied to which physical component
+
 | ADC Pin Label | ADC Pin Number | Pi Pin Label | Pi Pin Number |
 |---|---|---|---|
 | VDD | 16 | 3v3 | 1 |
@@ -121,6 +178,8 @@ print(car)
 | DGND | 9 | GND | 6 |
 
 ## Ultrasonic
+
+**WARNING**: Remember that the Ultrasonic Echo uses 5V logic, so it needs to be stepped down via a 1K and 2K resistor
 
 | Ultrasonic Pin Label | Ultrasonic Pin Number | Pi Pin Label | Pi Pin Number |
 |---|---|---|---|
@@ -147,7 +206,7 @@ car.configure_steer_servo_positions(left_duty_cycle, middle_duty_cycle, right_du
 
 ## Pin Overrides <a name="ConfigurePinOverrides"></a>
 
-While it is not reccomended, it is possible to override the default pin configuration with a custom configuration.
+While it is **not reccomended**, it is possible to override the default pin configuration with a custom configuration.
 
 When initializing the PiCar class, you can pass a `pins` argument which will override default pins for mock hardware.
 
@@ -169,7 +228,22 @@ car = PiCar(mock_car=True, pins=pins)
 
 ```
 
-# Function Documentation <a name="FunctionDoc"></a>
+# Module Function Documentation <a name="FunctionDoc"></a>
+
+## State Variables
+
+You have access to state variables for the following:
+- nod_servo_state
+- swivel_servo_state
+- steer_servo_state
+
+Which can be accessed in the following ways:
+
+```python
+car.nod_servo_state
+car.swivel_servo_state
+car.steer_servo_state
+```
 
 ## Constructor
 

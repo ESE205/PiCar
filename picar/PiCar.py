@@ -7,6 +7,7 @@ import Adafruit_PCA9685 as PWM_HAT
 from Adafruit_GPIO.GPIO import RPiGPIOAdapter as Adafruit_GPIO_Adapter
 import Adafruit_MCP3008
 import pkg_resources
+import os.path
 
 
 """
@@ -64,9 +65,15 @@ class PiCar:
 
     def __init__(self, mock_car=True, pins=None):
 
+        print("initializing PiCar...")
+
+        print(f"PiCar mode set to {'MOCK_CAR' if mock_car else 'REAL_CAR'}")
+
         self._simulated_hardware = mock_car
 
         GPIO.setmode(GPIO.BOARD)
+
+        print("configuring pins...")
 
         if pins is not None and mock_car is True:
             # default pins modified, validate custom pins
@@ -89,6 +96,7 @@ class PiCar:
         else:
             self._init_car()
 
+        print("initializing software SPI")
         # initialize software SPI
         gpio_adapter = Adafruit_GPIO_Adapter(GPIO, mode=GPIO.BOARD)
         clk_pin = 40
@@ -100,14 +108,40 @@ class PiCar:
             clk=clk_pin, cs=cs_pin, miso=miso_pin, mosi=mosi_pin, gpio=gpio_adapter
         )
 
+        print("looking for servo configuration file...")
+
+        if os.path.exists("./CONFIG.txt"):
+            print("servo configuration found!")
+            with open("./CONFIG.txt", "r") as config:
+                configuration = config.readlines()
+                if len(configuration) != 9:
+                    raise SystemExit(
+                        f"Invalid configuration file, expected 9 elements, found {len(configuration)}"
+                    )
+                self.configure_nod_servo_positions(
+                    int(configuration[0]), int(configuration[1]), int(configuration[2])
+                )
+                self.configure_nod_servo_positions(
+                    int(configuration[3]), int(configuration[4]), int(configuration[5])
+                )
+                self.configure_nod_servo_positions(
+                    int(configuration[6]), int(configuration[7]), int(configuration[8])
+                )
+        else:
+            print("servo configuration not found, using default values")
+
+        print("PiCar configured successfully")
+
+        print(self)
+
+        print("setting motors to default positions...")
+
         # set initial component states
         self.set_motor(0)
 
         self.set_nod_servo(0)
         self.set_steer_servo(0)
         self.set_nod_servo(0)
-
-        # Motor are same from car to test, so initialize globally
 
     """
     pins: List of pins to be configured for hardware, in following order:
@@ -212,7 +246,13 @@ class PiCar:
     right (int): servo duty cycle for right position
     """
 
-    def configure_nod_servo_positions(self, left, middle, right):
+    def configure_nod_servo_positions(self, left=None, middle=None, right=None):
+        if left is None:
+            left = self._servo_nod_left
+        if middle is None:
+            middle = self._servo_nod_middle
+        if right is None:
+            right = self._servo_nod_right
         if False in [
             isinstance(x, int) or isinstance(x, float) for x in (left, middle, right)
         ]:
@@ -230,7 +270,7 @@ class PiCar:
 
     def set_nod_servo(self, value, raw=False):
         # handle special input cases
-        if raw and not self._simulated_hardware:
+        if raw:
             self._servo_global_pwm.set_pwm(self._servo_nod_pin, 0, raw)
             self.nod_servo_state = raw
             return
@@ -271,7 +311,13 @@ class PiCar:
     right (int): servo duty cycle for right position
     """
 
-    def configure_swivel_servo_positions(self, left, middle, right):
+    def configure_swivel_servo_positions(self, left=None, middle=None, right=None):
+        if left is None:
+            left = self._servo_swivel_left
+        if middle is None:
+            middle = self._servo_swivel_middle
+        if right is None:
+            right = self._servo_swivel_right
         if False in [
             isinstance(x, int) or isinstance(x, float) for x in (left, middle, right)
         ]:
@@ -289,7 +335,7 @@ class PiCar:
 
     def set_swivel_servo(self, value, raw=False):
         # handle special input cases
-        if raw and not self._simulated_hardware:
+        if raw:
             self._servo_global_pwm.set_pwm(self._servo_swivel_pin, 0, raw)
             self.set_swivel_servo = raw
             return
@@ -330,7 +376,13 @@ class PiCar:
     right (int): servo duty cycle for right position
     """
 
-    def configure_steer_servo_positions(self, left, middle, right):
+    def configure_steer_servo_positions(self, left=None, middle=None, right=None):
+        if left is None:
+            left = self._servo_steer_left
+        if middle is None:
+            middle = self._servo_steer_middle
+        if right is None:
+            right = self._servo_steer_right
         if False in [
             isinstance(x, int) or isinstance(x, float) for x in (left, middle, right)
         ]:
@@ -349,7 +401,7 @@ class PiCar:
 
     def set_steer_servo(self, value, raw=False):
         # handle special input cases
-        if raw and not self._simulated_hardware:
+        if raw:
             self._servo_global_pwm.set_pwm(self._servo_steer_pin, 0, raw)
             self.steer_servo_state = raw
             return
