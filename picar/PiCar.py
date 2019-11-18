@@ -212,9 +212,12 @@ class PiCar:
     """
 
     def set_motor(self, duty_cycle, forward=True):
+        duty_cycle = duty_cycle if duty_cycle < 100 else 100
+        duty_cycle = duty_cycle if duty_cycle >= 0 else 0
         GPIO.output(self._motor_pin_1, GPIO.HIGH if forward else GPIO.LOW)
         GPIO.output(self._motor_pin_2, GPIO.LOW if forward else GPIO.HIGH)
         self._motor_pwm.ChangeDutyCycle(duty_cycle)
+        self.motor_state = duty_cycle;
 
     """
     Reset the hardware - will set all motors and servos to neutral positions
