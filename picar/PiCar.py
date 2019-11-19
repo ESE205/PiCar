@@ -250,7 +250,7 @@ class PiCar:
 
         GPIO.cleanup()
 
-    def _calc_servo_duty_cycle(left, middle, right, amount, is_left):
+    def _calc_servo_duty_cycle(self, left, middle, right, amount, is_left):
         return (
             middle - (middle - left) * amount / 10
             if is_left
