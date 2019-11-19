@@ -149,8 +149,8 @@ class PiCar:
         self.set_motor(0)
 
         self.set_nod_servo(0)
+        self.set_swivel_servo(0)
         self.set_steer_servo(0)
-        self.set_nod_servo(0)
 
     """
     pins: List of pins to be configured for hardware, in following order:
