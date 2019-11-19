@@ -130,10 +130,10 @@ class PiCar:
                 self.configure_nod_servo_positions(
                     int(configuration[0]), int(configuration[1]), int(configuration[2])
                 )
-                self.configure_nod_servo_positions(
+                self.configure_swivel_servo_positions(
                     int(configuration[3]), int(configuration[4]), int(configuration[5])
                 )
-                self.configure_nod_servo_positions(
+                self.configure_steer_servo_positions(
                     int(configuration[6]), int(configuration[7]), int(configuration[8])
                 )
         else:
@@ -367,6 +367,7 @@ class PiCar:
             raise SystemExit(
                 f"All args must be integer values, expected int, int, int, found: {type(left)}, {type(middle)}, {type(right)}"
             )
+        print(f"nod : {left} , {middle} , {right}")
         self._servo_nod_left = left
         self._servo_nod_middle = middle
         self._servo_nod_right = right
@@ -400,6 +401,7 @@ class PiCar:
             raise SystemExit(
                 f"All args must be integer values, expected int, int, int, found: {type(left)}, {type(middle)}, {type(right)}"
             )
+        print(f"swivel : {left} , {middle} , {right}")
         self._servo_swivel_left = left
         self._servo_swivel_middle = middle
         self._servo_swivel_right = right
@@ -433,6 +435,8 @@ class PiCar:
             raise SystemExit(
                 f"All args must be integer values, expected int, int, int, found: {type(left)}, {type(middle)}, {type(right)}"
             )
+
+        print(f"steer : {left} , {middle} , {right}")
         self._servo_steer_left = left
         self._servo_steer_middle = middle
         self._servo_steer_right = right
