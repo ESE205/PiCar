@@ -123,9 +123,9 @@ class PiCar:
             ) as config:
                 configuration = config.readlines()
                 # 9 elements + newline at the end
-                if len(configuration) != 10:
+                if len(configuration) < 9:
                     raise SystemExit(
-                        f"Invalid configuration file, expected 9 elements, found {len(configuration) - 1}"
+                        f"Invalid configuration file, expected 9 elements, found {len(configuration)}"
                     )
                 self.configure_nod_servo_positions(
                     int(configuration[0]), int(configuration[1]), int(configuration[2])
