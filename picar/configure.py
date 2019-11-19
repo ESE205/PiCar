@@ -78,4 +78,4 @@ def configure_car(pi_car_instance: PiCar):
                 final_position = position
                 position = input(f"{description} (currently {position}): ")
 
-            config.write(int(final_position) + "\n")
+            config.write(f"{int(final_position)}\n")
