@@ -264,7 +264,7 @@ class PiCar:
     """
 
     def _set_servo(self, servo, value=None, raw=False):
-        if servo not in [PiCar.SERVO_NOD, PiCcar.SERVO_SWIVEL, PiCar.SERVO_STEER]:
+        if servo not in [PiCar.SERVO_NOD, PiCar.SERVO_SWIVEL, PiCar.SERVO_STEER]:
             raise SystemExit(
                 f"Invalid servo specified to set_servo. Expected one of PiCar.SERVO_NOD, PiCar.SERVO_SWIVEL, PiCar.SERVO_STEER"
             )
