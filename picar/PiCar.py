@@ -10,13 +10,10 @@ import pkg_resources
 import os.path
 
 
-"""
-FEEDBACK
+# Global Variables
+PICAR_CONFIG_FILE_NAME = "PICAR_CONFIG.txt"
 
-getters for state
-
-
-"""
+MOCK_CAR_CONFIG_FILE_NAME = "MOCK_CAR_CONFIG.txt"
 
 """
 Class to interface with PiCar Hardware
@@ -24,6 +21,10 @@ Class to interface with PiCar Hardware
 
 
 class PiCar:
+
+    SERVO_NOD = 0
+    SERVO_SWIVEL = 1
+    SERVO_STEER = 2
 
     # Class Variables
     _simulated_hardware = None
@@ -113,21 +114,26 @@ class PiCar:
 
         print("looking for servo configuration file...")
 
-        if os.path.exists("./CONFIG.txt"):
+        if os.path.exists(
+            MOCK_CAR_CONFIG_FILE_NAME if mock_car else PICAR_CONFIG_FILE_NAME
+        ):
             print("servo configuration found!")
-            with open("./CONFIG.txt", "r") as config:
+            with open(
+                MOCK_CAR_CONFIG_FILE_NAME if mock_car else PICAR_CONFIG_FILE_NAME, "r"
+            ) as config:
                 configuration = config.readlines()
-                if len(configuration) != 9:
+                # 9 elements + newline at the end
+                if len(configuration) < 9:
                     raise SystemExit(
                         f"Invalid configuration file, expected 9 elements, found {len(configuration)}"
                     )
                 self.configure_nod_servo_positions(
                     int(configuration[0]), int(configuration[1]), int(configuration[2])
                 )
-                self.configure_nod_servo_positions(
+                self.configure_swivel_servo_positions(
                     int(configuration[3]), int(configuration[4]), int(configuration[5])
                 )
-                self.configure_nod_servo_positions(
+                self.configure_steer_servo_positions(
                     int(configuration[6]), int(configuration[7]), int(configuration[8])
                 )
         else:
@@ -143,8 +149,8 @@ class PiCar:
         self.set_motor(0)
 
         self.set_nod_servo(0)
+        self.set_swivel_servo(0)
         self.set_steer_servo(0)
-        self.set_nod_servo(0)
 
     """
     pins: List of pins to be configured for hardware, in following order:
@@ -217,7 +223,7 @@ class PiCar:
         GPIO.output(self._motor_pin_1, GPIO.HIGH if forward else GPIO.LOW)
         GPIO.output(self._motor_pin_2, GPIO.LOW if forward else GPIO.HIGH)
         self._motor_pwm.ChangeDutyCycle(duty_cycle)
-        self.motor_state = duty_cycle;
+        self.motor_state = duty_cycle
 
     """
     Reset the hardware - will set all motors and servos to neutral positions
@@ -244,6 +250,102 @@ class PiCar:
 
         GPIO.cleanup()
 
+    def _calc_servo_duty_cycle(self, left, middle, right, amount, is_left):
+        return (
+            middle - (middle - left) * amount / 10
+            if is_left
+            else (right - middle) * amount / 10 + middle
+        )
+
+    """
+    Generic set servo code
+    Wrapped by specific set servo commands so as to not change the API for students
+    TODO: change API to use this for simplicity
+    """
+
+    def _set_servo(self, servo, value=None, raw=False):
+        if servo not in [PiCar.SERVO_NOD, PiCar.SERVO_SWIVEL, PiCar.SERVO_STEER]:
+            raise SystemExit(
+                f"Invalid servo specified to set_servo. Expected one of PiCar.SERVO_NOD, PiCar.SERVO_SWIVEL, PiCar.SERVO_STEER"
+            )
+        # handle special input cases
+        if raw:
+            if servo == PiCar.SERVO_NOD:
+                self._servo_global_pwm.set_pwm(self._servo_nod_pin, 0, raw)
+                self.nod_servo_state = raw
+            elif servo == PiCar.SERVO_SWIVEL:
+                self._servo_global_pwm.set_pwm(self._servo_swivel_pin, 0, raw)
+                self.nod_swivel_state = raw
+            elif servo == PiCar.SERVO_STEER:
+                self._servo_global_pwm.set_pwm(self._servo_steer_pin, 0, raw)
+                self.nod_steer_state = raw
+            return
+        if not (isinstance(value, int) or isinstance(value, float)):
+            raise SystemExit(
+                f"value argument must be numeric between -10 and 10. Expected int or float, found {type(value)}"
+            )
+
+        # cast value to correct range
+        safe_value = max(min(10, value), -10)
+        if safe_value != value:
+            print(
+                f"WARNING: value passed to set_nod_servo exceeds expected range. Expected -10 <= value <= 10, found {value}"
+            )
+            print(f"Casting value to {safe_value}")
+        value = safe_value
+
+        is_left, amount = (value < 0, abs(value))
+        duty_cycle = None
+        if servo == PiCar.SERVO_NOD:
+            duty_cycle = self._calc_servo_duty_cycle(
+                self._servo_nod_left,
+                self._servo_nod_middle,
+                self._servo_nod_right,
+                amount,
+                is_left,
+            )
+        elif servo == PiCar.SERVO_SWIVEL:
+            duty_cycle = self._calc_servo_duty_cycle(
+                self._servo_swivel_left,
+                self._servo_swivel_middle,
+                self._servo_swivel_right,
+                amount,
+                is_left,
+            )
+        elif servo == PiCar.SERVO_STEER:
+            duty_cycle = self._calc_servo_duty_cycle(
+                self._servo_steer_left,
+                self._servo_steer_middle,
+                self._servo_steer_right,
+                amount,
+                is_left,
+            )
+
+        if self._simulated_hardware:
+            if servo == PiCar.SERVO_NOD:
+                self._servo_nod_pwm.ChangeDutyCycle(duty_cycle)
+            elif servo == PiCar.SERVO_SWIVEL:
+                self._servo_swivel_pwm.ChangeDutyCycle(duty_cycle)
+            elif servo == PiCar.SERVO_STEER:
+                self._servo_steer_pwm.ChangeDutyCycle(duty_cycle)
+        else:
+            if servo == PiCar.SERVO_NOD:
+                self._servo_global_pwm.set_pwm(self._servo_nod_pin, 0, int(duty_cycle))
+            elif servo == PiCar.SERVO_SWIVEL:
+                self._servo_global_pwm.set_pwm(
+                    self._servo_swivel_pin, 0, int(duty_cycle)
+                )
+            elif servo == PiCar.SERVO_STEER:
+                self._servo_global_pwm.set_pwm(
+                    self._servo_steer_pin, 0, int(duty_cycle)
+                )
+        if servo == PiCar.SERVO_NOD:
+            self.nod_servo_state = value
+        elif servo == PiCar.SERVO_SWIVEL:
+            self.swivel_servo_state = value
+        elif servo == PiCar.SERVO_STEER:
+            self.steer_servo_state = value
+
     """
     Provide alternate nod servo positions
     Note: when setting servo positon, values between left and middle or left and right are linearly interpolated
@@ -265,6 +367,7 @@ class PiCar:
             raise SystemExit(
                 f"All args must be integer values, expected int, int, int, found: {type(left)}, {type(middle)}, {type(right)}"
             )
+        print(f"nod : {left} , {middle} , {right}")
         self._servo_nod_left = left
         self._servo_nod_middle = middle
         self._servo_nod_right = right
@@ -275,39 +378,7 @@ class PiCar:
     """
 
     def set_nod_servo(self, value, raw=False):
-        # handle special input cases
-        if raw:
-            self._servo_global_pwm.set_pwm(self._servo_nod_pin, 0, raw)
-            self.nod_servo_state = raw
-            return
-        if not (isinstance(value, int) or isinstance(value, float)):
-            raise SystemExit(
-                f"value argument must be numeric between -10 and 10. Expected int or float, found {type(value)}"
-            )
-
-        # cast value to correct range
-        safe_value = max(min(10, value), -10)
-        if safe_value != value:
-            print(
-                f"WARNING: value passed to set_nod_servo exceeds expected range. Expected -10 <= value <= 10, found {value}"
-            )
-            print(f"Casting value to {safe_value}")
-        value = safe_value
-
-        is_left, amount = (value < 0, abs(value))
-        duty_cycle = (
-            self._servo_nod_middle
-            - (self._servo_nod_middle - self._servo_nod_left) * amount / 10
-            if is_left
-            else (self._servo_nod_right - self._servo_nod_middle) * amount / 10
-            + self._servo_nod_middle
-        )
-        if self._simulated_hardware:
-            self._servo_nod_pwm.ChangeDutyCycle(duty_cycle)
-        else:
-            self._servo_global_pwm.set_pwm(self._servo_nod_pin, 0, int(duty_cycle))
-
-        self.nod_servo_state = value
+        self._set_servo(PiCar.SERVO_NOD, value, raw)
 
     """
     Provide alternate swivel servo positions
@@ -330,6 +401,7 @@ class PiCar:
             raise SystemExit(
                 f"All args must be integer values, expected int, int, int, found: {type(left)}, {type(middle)}, {type(right)}"
             )
+        print(f"swivel : {left} , {middle} , {right}")
         self._servo_swivel_left = left
         self._servo_swivel_middle = middle
         self._servo_swivel_right = right
@@ -340,39 +412,7 @@ class PiCar:
     """
 
     def set_swivel_servo(self, value, raw=False):
-        # handle special input cases
-        if raw:
-            self._servo_global_pwm.set_pwm(self._servo_swivel_pin, 0, raw)
-            self.set_swivel_servo = raw
-            return
-        if not (isinstance(value, int) or isinstance(value, float)):
-            raise SystemExit(
-                f"value argument must be numeric between -10 and 10. Expected int or float, found {type(value)}"
-            )
-
-        # cast value to correct range
-        safe_value = max(min(10, value), -10)
-        if safe_value != value:
-            print(
-                f"WARNING: value passed to set_swivel_servo exceeds expected range. Expected -10 <= value <= 10, found {value}"
-            )
-            print(f"Casting value to {safe_value}")
-        value = safe_value
-
-        is_left, amount = (value < 0, abs(value))
-        duty_cycle = (
-            self._servo_swivel_middle
-            - (self._servo_swivel_middle - self._servo_swivel_left) * amount / 10
-            if is_left
-            else (self._servo_swivel_right - self._servo_swivel_middle) * amount / 10
-            + self._servo_swivel_middle
-        )
-        if self._simulated_hardware:
-            self._servo_swivel_pwm.ChangeDutyCycle(duty_cycle)
-        else:
-            self._servo_global_pwm.set_pwm(self._servo_swivel_pin, 0, int(duty_cycle))
-
-        self.swivel_servo_state = value
+        self._set_servo(PiCar.SERVO_SWIVEL, value, raw)
 
     """
     Provide alternate steer servo positions
@@ -395,6 +435,8 @@ class PiCar:
             raise SystemExit(
                 f"All args must be integer values, expected int, int, int, found: {type(left)}, {type(middle)}, {type(right)}"
             )
+
+        print(f"steer : {left} , {middle} , {right}")
         self._servo_steer_left = left
         self._servo_steer_middle = middle
         self._servo_steer_right = right
@@ -406,39 +448,7 @@ class PiCar:
     """
 
     def set_steer_servo(self, value, raw=False):
-        # handle special input cases
-        if raw:
-            self._servo_global_pwm.set_pwm(self._servo_steer_pin, 0, raw)
-            self.steer_servo_state = raw
-            return
-        if not (isinstance(value, int) or isinstance(value, float)):
-            raise SystemExit(
-                f"value argument must be numeric between -10 and 10. Expected int or float, found {type(value)}"
-            )
-
-        # cast value to correct range
-        safe_value = max(min(10, value), -10)
-        if safe_value != value:
-            print(
-                f"WARNING: value passed to set_steer_servo exceeds expected range. Expected -10 <= value <= 10, found {value}"
-            )
-            print(f"Casting value to {safe_value}")
-        value = safe_value
-
-        is_left, amount = (value < 0, abs(value))
-        duty_cycle = (
-            self._servo_steer_middle
-            - (self._servo_steer_middle - self._servo_steer_left) * amount / 10
-            if is_left
-            else (self._servo_steer_right - self._servo_steer_middle) * amount / 10
-            + self._servo_steer_middle
-        )
-        if self._simulated_hardware:
-            self._servo_steer_pwm.ChangeDutyCycle(duty_cycle)
-        else:
-            self._servo_global_pwm.set_pwm(self._servo_steer_pin, 0, int(duty_cycle))
-
-        self.steer_servo_state = value
+        self._set_servo(PiCar.SERVO_STEER, value, raw)
 
     """
     Read ultrasonic sensor

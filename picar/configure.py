@@ -1,4 +1,4 @@
-from picar import PiCar
+from picar import PiCar, PICAR_CONFIG_FILE_NAME, MOCK_CAR_CONFIG_FILE_NAME
 from time import sleep as wait
 
 
@@ -11,72 +11,75 @@ def configure_car(pi_car_instance: PiCar):
     )
 
     print(
-        "these values will be stored in CONFIG.txt in your current directory, and will be used in the initialization of future PiCar modules"
+        f"these values will be stored in {PICAR_CONFIG_FILE_NAME}/{MOCK_CAR_CONFIG_FILE_NAME} in your current directory, and will be used in the initialization of future PiCar modules\n\n"
     )
 
-    final_nod_low = nod_low = pi_car_instance._servo_nod_left
-    while str(nod_low).lower() != "ok":
-        pi_car_instance.set_nod_servo(None, raw=int(nod_low))
-        final_nod_low = nod_low
-        nod_low = input(f"low end for nod servo (currently {nod_low}): ")
+    print("-" * 10)
 
-    final_nod_middle = nod_middle = pi_car_instance._servo_nod_middle
-    while str(nod_middle).lower() != "ok":
-        pi_car_instance.set_nod_servo(None, raw=int(nod_middle))
-        final_nod_middle = nod_middle
-        nod_middle = input(f"center for nod servo (currently {nod_middle}): ")
+    config_type = input(f"is this configuration for the real PiCar hardware? (y/n):")
 
-    final_nod_high = nod_high = pi_car_instance._servo_nod_right
-    while str(nod_high).lower() != "ok":
-        pi_car_instance.set_nod_servo(None, raw=int(nod_high))
-        final_nod_high = nod_high
-        nod_high = input(f"high end for nod servo (currently {nod_high}): ")
+    file_name = (
+        PICAR_CONFIG_FILE_NAME if config_type == "y" else MOCK_CAR_CONFIG_FILE_NAME
+    )
 
-    final_swivel_low = swivel_low = pi_car_instance._servo_swivel_left
-    while str(swivel_low).lower() != "ok":
-        pi_car_instance.set_swivel_servo(None, raw=int(swivel_low))
-        final_swivel_low = swivel_low
-        swivel_low = input(f"low end for swivel servo (currently {swivel_low}): ")
+    print(f"Output will be to {file_name}")
 
-    final_swivel_middle = swivel_middle = pi_car_instance._servo_swivel_middle
-    while str(swivel_middle).lower() != "ok":
-        pi_car_instance.set_swivel_servo(None, raw=int(swivel_middle))
-        final_swivel_middle = swivel_middle
-        swivel_middle = input(f"center for swivel servo (currently {swivel_middle}): ")
+    with open(file_name, "w") as config:
 
-    final_swivel_high = swivel_high = pi_car_instance._servo_swivel_right
-    while str(swivel_low).lower() != "ok":
-        pi_car_instance.set_swivel_servo(None, raw=int(swivel_high))
-        final_swivel_high = swivel_high
-        swivel_high = input(f"high end for swivel servo (currently {swivel_high}): ")
+        for description, position, function in [
+            (
+                "low end for nod servo",
+                pi_car_instance._servo_nod_left,
+                pi_car_instance.set_nod_servo,
+            ),
+            (
+                "high end for nod servo",
+                pi_car_instance._servo_nod_right,
+                pi_car_instance.set_nod_servo,
+            ),
+            (
+                "middle for nod servo",
+                pi_car_instance._servo_nod_middle,
+                pi_car_instance.set_nod_servo,
+            ),
+            (
+                "low end for swivel servo",
+                pi_car_instance._servo_swivel_left,
+                pi_car_instance.set_swivel_servo,
+            ),
+            (
+                "high end for swivel servo",
+                pi_car_instance._servo_swivel_right,
+                pi_car_instance.set_swivel_servo,
+            ),
+            (
+                "middle for swivel servo",
+                pi_car_instance._servo_swivel_middle,
+                pi_car_instance.set_swivel_servo,
+            ),
+            (
+                "low end for steer servo",
+                pi_car_instance._servo_steer_left,
+                pi_car_instance.set_steer_servo,
+            ),
+            (
+                "high end for steer servo",
+                pi_car_instance._servo_steer_middle,
+                pi_car_instance.set_steer_servo,
+            ),
+            (
+                "middle for steer servo",
+                pi_car_instance._servo_steer_middle,
+                pi_car_instance.set_steer_servo,
+            ),
+        ]:
 
-    final_steer_low = steer_low = pi_car_instance._servo_steer_left
-    while str(steer_low).lower() != "ok":
-        pi_car_instance.set_steer_servo(None, raw=int(steer_low))
-        steer_low = input(f"low end for steer servo (currently {steer_low}): ")
+            final_position = position
+            while str(position).lower() != "ok":
+                function(None, raw=int(position))
+                final_position = position
+                position = input(
+                    f"{description} (currently {position}) (or 'ok' if position is good): "
+                )
 
-    steer_middle = pi_car_instance._servo_steer_center
-    while str(steer_low).lower() != "ok":
-        pi_car_instance.set_steer_servo(None, raw=int(steer_middle))
-        final_steer_low = steer_low
-        steer_middle = input(f"center for steer servo (currently {steer_middle}): ")
-
-    final_steer_high = steer_high = pi_car_instance._servo_steer_right
-    while str(steer_low).lower() != "ok":
-        pi_car_instance.set_steer_servo(None, raw=int(steer_high))
-        final_steer_high = steer_high
-        steer_high = input(f"high end for steer servo (currently {steer_high}): ")
-
-    with open("./CONFIG.txt", "w") as config:
-        for item in (
-            int(final_nod_low) + "\n",
-            int(final_nod_middle) + "\n",
-            int(final_nod_high) + "\n",
-            int(final_swivel_low) + "\n",
-            int(final_swivel_middle) + "\n",
-            int(final_swivel_high) + "\n",
-            int(final_steer_low) + "\n",
-            int(final_steer_middle) + "\n",
-            int(final_steer_high),
-        ):
-            config.write(f"{item}")
+            config.write(f"{int(final_position)}\n")
