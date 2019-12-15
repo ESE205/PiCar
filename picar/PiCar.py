@@ -118,8 +118,10 @@ class PiCar:
             print("config name overridden")
             MOCK_CAR_CONFIG_FILE_NAME = config_name
             PICAR_CONFIG_FILE_NAME = config_name
-        
-        print(f"looking for config file: ./{MOCK_CAR_CONFIG_FILE_NAME if mock_car else PICAR_CONFIG_FILE_NAME}")
+
+        print(
+            f"looking for config file: ./{MOCK_CAR_CONFIG_FILE_NAME if mock_car else PICAR_CONFIG_FILE_NAME}"
+        )
 
         if os.path.exists(
             MOCK_CAR_CONFIG_FILE_NAME if mock_car else PICAR_CONFIG_FILE_NAME
@@ -136,13 +138,19 @@ class PiCar:
                     )
                 else:
                     self.configure_nod_servo_positions(
-                        int(configuration[0]), int(configuration[2]), int(configuration[1])
+                        int(configuration[0]),
+                        int(configuration[2]),
+                        int(configuration[1]),
                     )
                     self.configure_swivel_servo_positions(
-                        int(configuration[3]), int(configuration[5]), int(configuration[4])
+                        int(configuration[3]),
+                        int(configuration[5]),
+                        int(configuration[4]),
                     )
                     self.configure_steer_servo_positions(
-                        int(configuration[6]), int(configuration[8]), int(configuration[7])
+                        int(configuration[6]),
+                        int(configuration[8]),
+                        int(configuration[7]),
                     )
         else:
             print("servo configuration not found, using default values")
@@ -166,9 +174,16 @@ class PiCar:
     """
 
     def _init_pins(self, pins):
-        self._motor_enable, self._motor_pin_1, self._motor_pin_2, self._servo_nod_pin, self._servo_swivel_pin, self._servo_steer_pin, self._ultrasonic_trigger, self._ultrasonic_echo = (
-            pins
-        )
+        (
+            self._motor_enable,
+            self._motor_pin_1,
+            self._motor_pin_2,
+            self._servo_nod_pin,
+            self._servo_swivel_pin,
+            self._servo_steer_pin,
+            self._ultrasonic_trigger,
+            self._ultrasonic_echo,
+        ) = pins
 
         # setup motor pins
         GPIO.setup(self._motor_enable, GPIO.OUT, initial=GPIO.LOW)
@@ -297,7 +312,7 @@ class PiCar:
         safe_value = max(min(10, value), -10)
         if safe_value != value:
             print(
-                f"WARNING: value passed to set_nod_servo exceeds expected range. Expected -10 <= value <= 10, found {value}"
+                f"WARNING: value passed to set_[nod|swivel|steer]_servo exceeds expected range. Expected -10 <= value <= 10, found {value}"
             )
             print(f"Casting value to {safe_value}")
         value = safe_value
