@@ -58,8 +58,13 @@ Quick rundown of helpful commands:
 from picar import PiCar
 
 # initialize PiCar:
-# mock_car specifies whether you are using real hardware or the RPi, pins is optional but can be used to override default pins for testing
-car = PiCar(mock_car=False, pins=None)
+# mock_car specifies whether you are using real hardware or the RPi
+# pins is optional but can be used to override default pins for testing
+# config_name is used to specify an alternate servo configuration filename
+car = PiCar(mock_car=True, pins=None, config_name=None)
+
+# i.e. provide servo configuration for car 3
+car = PiCar(mock_car=False, pins=None, config_name="PICAR_CONFIG_CAR3.txt")
 
 # turn on the DC motor- duty_cycle ranges 0-100, forward is optional but is either True (forward) or False (backward)
 car.set_motor(100)
