@@ -64,7 +64,7 @@ class PiCar:
     (motor_enable, motor_pin_1, motor_pin_2, servo_nod, servo_swivel, servo_steer, ultrasonic_trigger, ultrasonic_echo)
     """
 
-    def __init__(self, mock_car=True, pins=None):
+    def __init__(self, mock_car=True, pins=None, config_name=None):
 
         print("initializing PiCar...")
 
@@ -114,6 +114,13 @@ class PiCar:
 
         print("looking for servo configuration file...")
 
+        if config_name is not None:
+            print("config name overridden")
+            MOCK_CAR_CONFIG_FILE_NAME = config_name
+            PICAR_CONFIG_FILE_NAME = config_name
+        
+        print(f"looking for config file: ./{MOCK_CAR_CONFIG_FILE_NAME if mock_car else PICAR_CONFIG_FILE_NAME}")
+
         if os.path.exists(
             MOCK_CAR_CONFIG_FILE_NAME if mock_car else PICAR_CONFIG_FILE_NAME
         ):
@@ -124,18 +131,19 @@ class PiCar:
                 configuration = config.readlines()
                 # 9 elements + newline at the end
                 if len(configuration) < 9:
-                    raise SystemExit(
+                    print(
                         f"Invalid configuration file, expected 9 elements, found {len(configuration)}"
                     )
-                self.configure_nod_servo_positions(
-                    int(configuration[0]), int(configuration[2]), int(configuration[1])
-                )
-                self.configure_swivel_servo_positions(
-                    int(configuration[3]), int(configuration[5]), int(configuration[4])
-                )
-                self.configure_steer_servo_positions(
-                    int(configuration[6]), int(configuration[8]), int(configuration[7])
-                )
+                else:
+                    self.configure_nod_servo_positions(
+                        int(configuration[0]), int(configuration[2]), int(configuration[1])
+                    )
+                    self.configure_swivel_servo_positions(
+                        int(configuration[3]), int(configuration[5]), int(configuration[4])
+                    )
+                    self.configure_steer_servo_positions(
+                        int(configuration[6]), int(configuration[8]), int(configuration[7])
+                    )
         else:
             print("servo configuration not found, using default values")
 
