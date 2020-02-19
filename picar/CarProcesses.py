@@ -4,7 +4,7 @@ from picamera.array import PiRGBArray
 from picamera import PiCamera
 
 
-def ps_image_stream(self, queue, resolution=(1280, 720), framerate=30):
+def ps_image_stream(queue, resolution=(1280, 720), framerate=30):
     """
     The process function to take photos from the camera
     queue: multiprocessing.Manager.Queue = queue to store image data in
@@ -22,7 +22,7 @@ def ps_image_stream(self, queue, resolution=(1280, 720), framerate=30):
         rawCapture.truncate(0)
 
 
-def ps_ultrasonic_dist(self, queue, ECHO_PIN, TRIG_PIN, target_sample_rate=10):
+def ps_ultrasonic_dist(queue, ECHO_PIN, TRIG_PIN, target_sample_rate=10):
     """
     The process function to read ultrasonic values
     queue: multiprocessing.Manager.Queue = queue to store ultrasonic data in
