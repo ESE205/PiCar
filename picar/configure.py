@@ -1,4 +1,4 @@
-from picar import PiCar, PICAR_CONFIG_FILE_NAME, MOCK_CAR_CONFIG_FILE_NAME
+from picar import PiCar
 from time import sleep as wait
 
 
@@ -11,7 +11,7 @@ def configure_car(pi_car_instance: PiCar):
     )
 
     print(
-        f"these values will be stored in {PICAR_CONFIG_FILE_NAME}/{MOCK_CAR_CONFIG_FILE_NAME} in your current directory, and will be used in the initialization of future PiCar modules\n\n"
+        f"these values will be stored in {pi_car_instance.PICAR_CONFIG_FILE_NAME}/{pi_car_instance.MOCK_CAR_CONFIG_FILE_NAME} in your current directory, and will be used in the initialization of future PiCar modules\n\n"
     )
 
     print("-" * 10)
@@ -19,7 +19,9 @@ def configure_car(pi_car_instance: PiCar):
     config_type = input(f"is this configuration for the real PiCar hardware? (y/n):")
 
     file_name = (
-        PICAR_CONFIG_FILE_NAME if config_type == "y" else MOCK_CAR_CONFIG_FILE_NAME
+        pi_car_instance.PICAR_CONFIG_FILE_NAME
+        if config_type == "y"
+        else pi_car_instance.MOCK_CAR_CONFIG_FILE_NAME
     )
 
     print(f"Output will be to {file_name}")

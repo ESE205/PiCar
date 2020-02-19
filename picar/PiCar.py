@@ -12,16 +12,15 @@ import pkg_resources
 import os.path
 
 
-# Global Variables
-PICAR_CONFIG_FILE_NAME = "PICAR_CONFIG.txt"
-
-MOCK_CAR_CONFIG_FILE_NAME = "MOCK_CAR_CONFIG.txt"
-
-
 class PiCar:
     """
     Class to interface with PiCar Hardware
     """
+
+    # Global Variables
+    PICAR_CONFIG_FILE_NAME = "PICAR_CONFIG.txt"
+
+    MOCK_CAR_CONFIG_FILE_NAME = "MOCK_CAR_CONFIG.txt"
 
     SERVO_NOD = 0
     SERVO_SWIVEL = 1
@@ -120,6 +119,8 @@ class PiCar:
             self._ultrasonic_process = ParallelTask(
                 ps_ultrasonic_dist, (self._ultrasonic_echo, self._ultrasonic_trigger)
             )
+            # give the camera a bit to wake up
+            time.sleep(1)
 
         print("initializing software SPI")
         # initialize software SPI
@@ -137,19 +138,22 @@ class PiCar:
 
         if config_name is not None:
             print("config name overridden")
-            MOCK_CAR_CONFIG_FILE_NAME = config_name
-            PICAR_CONFIG_FILE_NAME = config_name
+            self.MOCK_CAR_CONFIG_FILE_NAME = config_name
+            self.PICAR_CONFIG_FILE_NAME = config_name
 
         print(
-            f"looking for config file: ./{MOCK_CAR_CONFIG_FILE_NAME if mock_car else PICAR_CONFIG_FILE_NAME}"
+            f"looking for config file: ./{self.MOCK_CAR_CONFIG_FILE_NAME if mock_car else self.PICAR_CONFIG_FILE_NAME}"
         )
 
         if os.path.exists(
-            MOCK_CAR_CONFIG_FILE_NAME if mock_car else PICAR_CONFIG_FILE_NAME
+            self.MOCK_CAR_CONFIG_FILE_NAME if mock_car else self.PICAR_CONFIG_FILE_NAME
         ):
             print("servo configuration found!")
             with open(
-                MOCK_CAR_CONFIG_FILE_NAME if mock_car else PICAR_CONFIG_FILE_NAME, "r"
+                self.MOCK_CAR_CONFIG_FILE_NAME
+                if mock_car
+                else self.PICAR_CONFIG_FILE_NAME,
+                "r",
             ) as config:
                 configuration = config.readlines()
                 # 9 elements + newline at the end
@@ -522,6 +526,7 @@ class PiCar:
         print(PiCar) will show currently configured pins
         TODO: Add additional variables (i.e. simulated or not, whether all PWMs are configured, etc)
         TODO fix version
+        TODO: Add config filename
         with open("./VERSION", "r") as ver:
             version = ver.read().strip()
         print("ok")
