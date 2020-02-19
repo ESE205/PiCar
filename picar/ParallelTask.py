@@ -30,7 +30,7 @@ class ParallelTask:
 
         self._queue = manager.Queue()
 
-        self._process = Process(target=funct, args=(self.queue, *funct_args))
+        self._process = Process(target=funct, args=(self._queue, *funct_args))
 
         self._process.start()
 
