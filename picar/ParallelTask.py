@@ -15,7 +15,7 @@ class ParallelTask:
         queue: multiprocessing.Manager.Queue
         return: (data value, time read, datapoints in queue when called)
         """
-        v = False
+        v = (None, None)
         tossed_readings = 0
         while not queue.empty():
             tossed_readings += 1
