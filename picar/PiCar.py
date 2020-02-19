@@ -2,10 +2,12 @@ import RPi.GPIO as GPIO
 import time
 
 import Adafruit_PCA9685 as PWM_HAT
-
-# import Adafruit_GPIO.SPI as SPI
 from Adafruit_GPIO.GPIO import RPiGPIOAdapter as Adafruit_GPIO_Adapter
 import Adafruit_MCP3008
+
+from CarProcesses import ps_image_stream, ps_ultrasonic_dist
+from ParallelTask import ParallelTask
+
 import pkg_resources
 import os.path
 
@@ -15,12 +17,11 @@ PICAR_CONFIG_FILE_NAME = "PICAR_CONFIG.txt"
 
 MOCK_CAR_CONFIG_FILE_NAME = "MOCK_CAR_CONFIG.txt"
 
-"""
-Class to interface with PiCar Hardware
-"""
-
 
 class PiCar:
+    """
+    Class to interface with PiCar Hardware
+    """
 
     SERVO_NOD = 0
     SERVO_SWIVEL = 1
@@ -52,19 +53,24 @@ class PiCar:
 
     _ultrasonic_trigger, _ultrasonic_echo = (None, None)
 
+    _threaded = None
+
+    _camera_process, _ultrasonic_process = (None, None)
+
     adc = None
 
-    """
-    Initialize the PiCar Module
-    ---------------------------
-    Variables:
-    ---------------------------
-    mock_car (bool): True for simulated hardware, False to run on actual PiCar
-    pins (tuple): List of Custom pins to be used in simulated hardware, in following order:
-    (motor_enable, motor_pin_1, motor_pin_2, servo_nod, servo_swivel, servo_steer, ultrasonic_trigger, ultrasonic_echo)
-    """
-
-    def __init__(self, mock_car=True, pins=None, config_name=None):
+    def __init__(self, mock_car=True, pins=None, config_name=None, threaded=False):
+        """
+        Initialize the PiCar Module
+        ---------------------------
+        Variables:
+        ---------------------------
+        mock_car (bool): True for simulated hardware, False to run on actual PiCar
+        pins (tuple): List of Custom pins to be used in simulated hardware, in following order:
+            (motor_enable, motor_pin_1, motor_pin_2, servo_nod, servo_swivel, servo_steer, ultrasonic_trigger, ultrasonic_echo)
+        config_name (String): path to servo configuration file
+        threaded (bool): whether the program should run threaded or not
+        """
 
         print("initializing PiCar...")
 
@@ -99,6 +105,21 @@ class PiCar:
             self._init_mock_car()
         else:
             self._init_car()
+
+        self._threaded = threaded
+
+        if self._threaded:
+            print("Program is running in THREADED MODE")
+            print(
+                "NOTE: All use of the PiCamera module should be through PiCar.get_image"
+            )
+            print(
+                "Any attempt to use the PiCamera module in another context will crash your program"
+            )
+            self._camera_process = ParallelTask(ps_image_stream, ((640, 360), 15))
+            self._ultrasonic_process = ParallelTask(
+                ps_ultrasonic_dist, (self._ultrasonic_echo, self._ultrasonic_trigger)
+            )
 
         print("initializing software SPI")
         # initialize software SPI
@@ -168,12 +189,12 @@ class PiCar:
         self.set_swivel_servo(0)
         self.set_steer_servo(0)
 
-    """
-    pins: List of pins to be configured for hardware, in following order:
-    (motor_pin_1, motor_pin_2, motor_enable, servo_nod, servo_swivel, servo_steer)
-    """
-
     def _init_pins(self, pins):
+        """
+        pins: List of pins to be configured for hardware, in following order:
+        (motor_pin_1, motor_pin_2, motor_enable, servo_nod, servo_swivel, servo_steer)
+        """
+
         (
             self._motor_enable,
             self._motor_pin_1,
@@ -200,11 +221,10 @@ class PiCar:
         GPIO.setup(self._ultrasonic_trigger, GPIO.OUT, initial=GPIO.LOW)
         GPIO.setup(self._ultrasonic_echo, GPIO.IN)
 
-    """
-    Initialize car variables for use with RPi Treated as Mock Car
-    """
-
     def _init_mock_car(self):
+        """
+        Initialize car variables for use with RPi Treated as Mock Car
+        """
 
         self._servo_nod_pwm = GPIO.PWM(self._servo_nod_pin, 50)
         self._servo_swivel_pwm = GPIO.PWM(self._servo_swivel_pin, 50)
@@ -222,11 +242,10 @@ class PiCar:
         self._motor_pwm.start(0)
         pass
 
-    """
-    Initialize car variables for use with the actual Adeept Car
-    """
-
     def _init_car(self):
+        """
+        Initialize car variables for use with the actual Adeept Car
+        """
         self._servo_global_pwm = PWM_HAT.PCA9685()
         self._servo_global_pwm.set_pwm_freq(60)
 
@@ -235,12 +254,11 @@ class PiCar:
 
         pass
 
-    """
-    forward (bool):direction of motor spin
-    duty_cycle (int): 0->100
-    """
-
     def set_motor(self, duty_cycle, forward=True):
+        """
+        forward (bool):direction of motor spin
+        duty_cycle (int): 0->100
+        """
         duty_cycle = duty_cycle if duty_cycle < 100 else 100
         duty_cycle = duty_cycle if duty_cycle >= 0 else 0
         GPIO.output(self._motor_pin_1, GPIO.LOW if forward else GPIO.HIGH)
@@ -248,23 +266,20 @@ class PiCar:
         self._motor_pwm.ChangeDutyCycle(duty_cycle)
         self.motor_state = duty_cycle
 
-    """
-    Reset the hardware - will set all motors and servos to neutral positions
-    """
-
     def reset(self):
-
+        """
+        Reset the hardware - will set all motors and servos to neutral positions
+        """
         self.set_motor(0)
 
         self.set_nod_servo(0)
         self.set_steer_servo(0)
         self.set_swivel_servo(0)
 
-    """
-    Stop the hardware - will kill PWM instance for all motors and servos, and cleanup GPIO
-    """
-
     def stop(self):
+        """
+        Stop the hardware - will kill PWM instance for all motors and servos, and cleanup GPIO
+        """
         self._motor_pwm.stop()
         if self._simulated_hardware:
             self._servo_nod_pwm.stop()
@@ -280,13 +295,12 @@ class PiCar:
             else (right - middle) * amount / 10 + middle
         )
 
-    """
-    Generic set servo code
-    Wrapped by specific set servo commands so as to not change the API for students
-    TODO: change API to use this for simplicity
-    """
-
     def _set_servo(self, servo, value=None, raw=False):
+        """
+        Generic set servo code
+        Wrapped by specific set servo commands so as to not change the API for students
+        TODO: change API to use this for simplicity
+        """
         if servo not in [PiCar.SERVO_NOD, PiCar.SERVO_SWIVEL, PiCar.SERVO_STEER]:
             raise SystemExit(
                 f"Invalid servo specified to set_servo. Expected one of PiCar.SERVO_NOD, PiCar.SERVO_SWIVEL, PiCar.SERVO_STEER"
@@ -369,15 +383,14 @@ class PiCar:
         elif servo == PiCar.SERVO_STEER:
             self.steer_servo_state = value
 
-    """
-    Provide alternate nod servo positions
-    Note: when setting servo positon, values between left and middle or left and right are linearly interpolated
-    left (int): servo duty cycle for left position
-    middle (int): servo duty cycle for middle position
-    right (int): servo duty cycle for right position
-    """
-
     def configure_nod_servo_positions(self, left=None, middle=None, right=None):
+        """
+        Provide alternate nod servo positions
+        Note: when setting servo positon, values between left and middle or left and right are linearly interpolated
+        left (int): servo duty cycle for left position
+        middle (int): servo duty cycle for middle position
+        right (int): servo duty cycle for right position
+        """
         if left is None:
             left = self._servo_nod_left
         if middle is None:
@@ -395,23 +408,21 @@ class PiCar:
         self._servo_nod_middle = middle
         self._servo_nod_right = right
 
-    """
-    value (int): between -10 and 10, -10 being max down, 0 being center, and 10 being max up
-    raw (int): only to be used for TA debugging
-    """
-
     def set_nod_servo(self, value, raw=False):
+        """
+        value (int): between -10 and 10, -10 being max down, 0 being center, and 10 being max up
+        raw (int): only to be used for TA debugging
+        """
         self._set_servo(PiCar.SERVO_NOD, value, raw)
 
-    """
-    Provide alternate swivel servo positions
-    Note: when setting servo positon, values between left and middle or left and right are linearly interpolated
-    left (int): servo duty cycle for left position
-    middle (int): servo duty cycle for middle position
-    right (int): servo duty cycle for right position
-    """
-
     def configure_swivel_servo_positions(self, left=None, middle=None, right=None):
+        """
+        Provide alternate swivel servo positions
+        Note: when setting servo positon, values between left and middle or left and right are linearly interpolated
+        left (int): servo duty cycle for left position
+        middle (int): servo duty cycle for middle position
+        right (int): servo duty cycle for right position
+        """
         if left is None:
             left = self._servo_swivel_left
         if middle is None:
@@ -429,23 +440,21 @@ class PiCar:
         self._servo_swivel_middle = middle
         self._servo_swivel_right = right
 
-    """
-    value (int): between -10 and 10, -10 being max left, 0 being center, and 10 being max right
-    raw (int): only to be used for TA debugging
-    """
-
     def set_swivel_servo(self, value, raw=False):
+        """
+        value (int): between -10 and 10, -10 being max left, 0 being center, and 10 being max right
+        raw (int): only to be used for TA debugging
+        """
         self._set_servo(PiCar.SERVO_SWIVEL, value, raw)
 
-    """
-    Provide alternate steer servo positions
-    Note: when setting servo positon, values between left and middle or left and right are linearly interpolated
-    left (int): servo duty cycle for left position
-    middle (int): servo duty cycle for middle position
-    right (int): servo duty cycle for right position
-    """
-
     def configure_steer_servo_positions(self, left=None, middle=None, right=None):
+        """
+        Provide alternate steer servo positions
+        Note: when setting servo positon, values between left and middle or left and right are linearly interpolated
+        left (int): servo duty cycle for left position
+        middle (int): servo duty cycle for middle position
+        right (int): servo duty cycle for right position
+        """
         if left is None:
             left = self._servo_steer_left
         if middle is None:
@@ -464,45 +473,42 @@ class PiCar:
         self._servo_steer_middle = middle
         self._servo_steer_right = right
 
-    """
-    Set the steer servo 
-    value (int): between -10 and 10, -10 being max left, 0 being center, and 10 being max right
-    raw (int): only to be used for TA debugging 
-    """
-
     def set_steer_servo(self, value, raw=False):
+        """
+        Set the steer servo 
+        value (int): between -10 and 10, -10 being max left, 0 being center, and 10 being max right
+        raw (int): only to be used for TA debugging 
+        """
         self._set_servo(PiCar.SERVO_STEER, value, raw)
 
-    """
-    Read ultrasonic sensor
-    return (double): distance in cm from object as detected by ultrasonic sensor
-    """
-
     def read_distance(self):
+        """
+        Read ultrasonic sensor
+        return (double): distance in cm from object as detected by ultrasonic sensor
+        """
+        if self._threaded:
+            return self._ultrasonic_process.get_result()[0]
+        else:
+            # activate trigger
+            GPIO.output(self._ultrasonic_trigger, GPIO.HIGH)
+            time.sleep(0.00001)
+            GPIO.output(self._ultrasonic_trigger, GPIO.LOW)
 
-        # activate trigger
-        GPIO.output(self._ultrasonic_trigger, GPIO.HIGH)
-        time.sleep(0.000015)
-        GPIO.output(self._ultrasonic_trigger, GPIO.LOW)
-
-        # get send and recieve time
-        while not GPIO.input(self._ultrasonic_echo):
-            pass
-        echo_start = time.time()
-        while GPIO.input(self._ultrasonic_echo):
-            pass
-        echo_end = time.time()
-        # compute one way distance in cm from a two way time in seconds
-        return (echo_end - echo_start) * 340 * 100 / 2
-
-    """
-    Format PiCar for print representation
-    print(PiCar) will show currently configured pins
-    TODO: Add additional variables (i.e. simulated or not, whether all PWMs are configured, etc)
-    """
+            # get send and recieve time
+            while not GPIO.input(self._ultrasonic_echo):
+                pass
+            echo_start = time.time()
+            while GPIO.input(self._ultrasonic_echo):
+                pass
+            echo_end = time.time()
+            # compute one way distance in cm from a two way time in seconds
+            return (echo_end - echo_start) * 340 * 100 / 2
 
     def __repr__(self):
         """
+        Format PiCar for print representation
+        print(PiCar) will show currently configured pins
+        TODO: Add additional variables (i.e. simulated or not, whether all PWMs are configured, etc)
         TODO fix version
         with open("./VERSION", "r") as ver:
             version = ver.read().strip()
