@@ -1,4 +1,4 @@
-from time import time
+from time import time, sleep
 import RPi.GPIO as GPIO
 from picamera.array import PiRGBArray
 from picamera import PiCamera
