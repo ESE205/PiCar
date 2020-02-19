@@ -34,7 +34,7 @@ def ps_ultrasonic_dist(queue, ECHO_PIN, TRIG_PIN, target_sample_rate=10):
 
     start_time, end_time = (0, 0)
 
-    nextTime = now()
+    nextTime = time()
 
     while True:
 
