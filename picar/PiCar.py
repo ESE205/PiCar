@@ -504,6 +504,18 @@ class PiCar:
             # compute one way distance in cm from a two way time in seconds
             return (echo_end - echo_start) * 340 * 100 / 2
 
+    def get_image(self):
+        """
+        returns an image object
+        NOTE: only valid if the program is threaded
+        """
+        if not self._threaded:
+            raise SystemExit(
+                "FATAL: get_image can only be called when PiCar is run in threaded mode"
+            )
+
+        return self._camera_process.get_result()[0]
+
     def __repr__(self):
         """
         Format PiCar for print representation
