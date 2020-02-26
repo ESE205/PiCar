@@ -5,7 +5,7 @@ The PiCar comes equipped with a variety of sensors. In order to facilitate off-c
 
 | Sensor | Method |
 |---|---|
-| Camera | Use as Normal |
+| Camera | Use as Normal UNLESS threaded=True, in which case use PiCar.get_image() |
 | DC Motor | Use PiCar.set_motor(DutyCycle) |
 | Servo(s) | Use PiCar.set_[servo_name]_servo(value) |
 | ADC | Use functions as normal, but use the PiCar.adc variable instead of your own mcp variable |
@@ -65,6 +65,9 @@ car = PiCar(mock_car=True, pins=None, config_name=None)
 
 # i.e. provide servo configuration for car 3
 car = PiCar(mock_car=False, pins=None, config_name="PICAR_CONFIG_CAR3.txt")
+
+# initialize PiCar in threaded mode
+car = PiCar(mock_car=False, threaded=True)
 
 # turn on the DC motor- duty_cycle ranges 0-100, forward is optional but is either True (forward) or False (backward)
 car.set_motor(100)
@@ -133,6 +136,39 @@ car = PiCar(mock_car=True)
 
 # WARNING, the car will attempt to drive
 test.execute_test(car)
+```
+
+# Threading
+
+To remove the need for complicated timing considerations, the PiCar supports threaded mode.
+
+> NOTE: If using threaded mode, the PiCamera module cannot be instantiated in any user code. To get images from the camera, only the PiCar.get_image() method should be used.
+
+```python
+
+# import PiCar class
+from picar import PiCar
+
+# initialize PiCar in threaded mode
+car = PiCar(mock_car=False, threaded=True)
+
+```
+
+Threaded mode spawns two threads- one for ultrasonic readings, and one for the PiCamera. Each sets a target sample rate. When a reading from either is requested, *only the most recent reading will be returned*. All other readings will be discarded.
+
+```python
+
+# import PiCar class
+from picar import PiCar
+
+# initialize PiCar in threaded mode
+car = PiCar(mock_car=False, threaded=True)
+
+# retrieve image
+img = car.get_image()
+
+# get ultrasonic response
+dist = car.read_distance()
 ```
 
 # ADC Channels <a name="ADC_Channels"></a>
