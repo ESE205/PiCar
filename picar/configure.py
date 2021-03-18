@@ -30,6 +30,11 @@ def configure_car(pi_car_instance: PiCar):
 
         for description, position, function in [
             (
+                "middle for nod servo",
+                pi_car_instance._servo_nod_middle,
+                pi_car_instance.set_nod_servo,
+            ),
+            (
                 "low end for nod servo",
                 pi_car_instance._servo_nod_left,
                 pi_car_instance.set_nod_servo,
@@ -40,9 +45,9 @@ def configure_car(pi_car_instance: PiCar):
                 pi_car_instance.set_nod_servo,
             ),
             (
-                "middle for nod servo",
-                pi_car_instance._servo_nod_middle,
-                pi_car_instance.set_nod_servo,
+                "middle for swivel servo",
+                pi_car_instance._servo_swivel_middle,
+                pi_car_instance.set_swivel_servo,
             ),
             (
                 "low end for swivel servo",
@@ -55,9 +60,9 @@ def configure_car(pi_car_instance: PiCar):
                 pi_car_instance.set_swivel_servo,
             ),
             (
-                "middle for swivel servo",
-                pi_car_instance._servo_swivel_middle,
-                pi_car_instance.set_swivel_servo,
+                "middle for steer servo",
+                pi_car_instance._servo_steer_middle,
+                pi_car_instance.set_steer_servo,
             ),
             (
                 "low end for steer servo",
@@ -66,11 +71,6 @@ def configure_car(pi_car_instance: PiCar):
             ),
             (
                 "high end for steer servo",
-                pi_car_instance._servo_steer_middle,
-                pi_car_instance.set_steer_servo,
-            ),
-            (
-                "middle for steer servo",
                 pi_car_instance._servo_steer_middle,
                 pi_car_instance.set_steer_servo,
             ),
