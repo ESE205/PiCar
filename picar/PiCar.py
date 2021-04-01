@@ -163,19 +163,19 @@ class PiCar:
                     )
                 else:
                     self.configure_nod_servo_positions(
+                        int(configuration[1]),
                         int(configuration[0]),
                         int(configuration[2]),
-                        int(configuration[1]),
                     )
                     self.configure_swivel_servo_positions(
+                        int(configuration[4]),
                         int(configuration[3]),
                         int(configuration[5]),
-                        int(configuration[4]),
                     )
                     self.configure_steer_servo_positions(
+                        int(configuration[7]),
                         int(configuration[6]),
                         int(configuration[8]),
-                        int(configuration[7]),
                     )
         else:
             print("servo configuration not found, using default values")
