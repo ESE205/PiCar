@@ -1,5 +1,6 @@
 import RPi.GPIO as GPIO
 import time
+from typing import Tuple
 
 import Adafruit_PCA9685 as PWM_HAT
 from Adafruit_GPIO.GPIO import RPiGPIOAdapter as Adafruit_GPIO_Adapter
@@ -18,47 +19,53 @@ class PiCar:
     """
 
     # Global Variables
-    PICAR_CONFIG_FILE_NAME = "PICAR_CONFIG.txt"
+    PICAR_CONFIG_FILE_NAME: str = "PICAR_CONFIG.txt"
 
-    MOCK_CAR_CONFIG_FILE_NAME = "MOCK_CAR_CONFIG.txt"
+    MOCK_CAR_CONFIG_FILE_NAME: str = "MOCK_CAR_CONFIG.txt"
 
-    SERVO_NOD = 0
-    SERVO_SWIVEL = 1
-    SERVO_STEER = 2
+    SERVO_NOD: int = 0
+    SERVO_SWIVEL: int = 1
+    SERVO_STEER: int = 2
 
     # Class Variables
     _simulated_hardware = None
 
     _motor_enable, _motor_pin_1, _motor_pin_2, _motor_pwm = (None, None, None, None)
 
-    motor_state = 0
+    motor_state: int = 0
 
     _servo_global_pwm = None
 
     _servo_nod_pin, _servo_nod_pwm = (None, None)
     _servo_nod_left, _servo_nod_middle, _servo_nod_right = (295, 425, 662)
 
-    nod_servo_state = 0
+    nod_servo_state: int = 0
 
     _servo_swivel_pin, _servo_swivel_pwm = (None, None)
     _servo_swivel_left, _servo_swivel_middle, _servo_swivel_right = (140, 310, 476)
 
-    swivel_servo_state = 0
+    swivel_servo_state: int = 0
 
     _servo_steer_pin, _servo_steer_pwm = (None, None)
     _servo_steer_left, _servo_steer_middle, _servo_steer_right = (280, 370, 500)
 
-    steer_servo_state = 0
+    steer_servo_state: int = 0
 
     _ultrasonic_trigger, _ultrasonic_echo = (None, None)
 
-    _threaded = None
+    _threaded: bool = None
 
     _camera_process, _ultrasonic_process = (None, None)
 
     adc = None
 
-    def __init__(self, mock_car=True, pins=None, config_name=None, threaded=False):
+    def __init__(
+        self,
+        mock_car: bool = True,
+        pins: Tuple[int, int, int, int, int, int, int, int] = None,
+        config_name: str = None,
+        threaded: bool = False,
+    ):
         """
         Initialize the PiCar Module
         ---------------------------
@@ -125,10 +132,10 @@ class PiCar:
         print("initializing software SPI")
         # initialize software SPI
         gpio_adapter = Adafruit_GPIO_Adapter(GPIO, mode=GPIO.BOARD)
-        clk_pin = 40
-        miso_pin = 21
-        mosi_pin = 19
-        cs_pin = 26
+        clk_pin: int = 40
+        miso_pin: int = 21
+        mosi_pin: int = 19
+        cs_pin: int = 26
 
         self.adc = Adafruit_MCP3008.MCP3008(
             clk=clk_pin, cs=cs_pin, miso=miso_pin, mosi=mosi_pin, gpio=gpio_adapter
@@ -479,13 +486,13 @@ class PiCar:
 
     def set_steer_servo(self, value, raw=False):
         """
-        Set the steer servo 
+        Set the steer servo
         value (int): between -10 and 10, -10 being max left, 0 being center, and 10 being max right
-        raw (int): only to be used for TA debugging 
+        raw (int): only to be used for TA debugging
         """
         self._set_servo(PiCar.SERVO_STEER, value, raw)
 
-    def read_distance(self):
+    def read_distance(self) -> float:
         """
         Read ultrasonic sensor
         return (double): distance in cm from object as detected by ultrasonic sensor
