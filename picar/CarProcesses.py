@@ -2,9 +2,12 @@ from time import time, sleep
 import RPi.GPIO as GPIO
 from picamera.array import PiRGBArray
 from picamera import PiCamera
+from typing import Tuple
 
 
-def ps_image_stream(queue, resolution=(1280, 720), framerate=30):
+def ps_image_stream(
+    queue, resolution: Tuple(int, int) = (1280, 720), framerate: int = 30
+):
     """
     The process function to take photos from the camera
     queue: multiprocessing.Manager.Queue = queue to store image data in
@@ -25,7 +28,9 @@ def ps_image_stream(queue, resolution=(1280, 720), framerate=30):
         pass
 
 
-def ps_ultrasonic_dist(queue, ECHO_PIN, TRIG_PIN, target_sample_rate=10):
+def ps_ultrasonic_dist(
+    queue, ECHO_PIN: int, TRIG_PIN: int, target_sample_rate: int = 10
+):
     """
     The process function to read ultrasonic values
     queue: multiprocessing.Manager.Queue = queue to store ultrasonic data in

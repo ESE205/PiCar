@@ -8,8 +8,8 @@ import Adafruit_MCP3008
 
 from picar.CarProcesses import ps_image_stream, ps_ultrasonic_dist
 from picar.ParallelTask import ParallelTask
+from picar.Servo import Servo
 
-import pkg_resources
 import os.path
 
 
@@ -36,20 +36,9 @@ class PiCar:
 
     _servo_global_pwm = None
 
-    _servo_nod_pin, _servo_nod_pwm = (None, None)
-    _servo_nod_left, _servo_nod_middle, _servo_nod_right = (295, 425, 662)
-
-    nod_servo_state: int = 0
-
-    _servo_swivel_pin, _servo_swivel_pwm = (None, None)
-    _servo_swivel_left, _servo_swivel_middle, _servo_swivel_right = (140, 310, 476)
-
-    swivel_servo_state: int = 0
-
-    _servo_steer_pin, _servo_steer_pwm = (None, None)
-    _servo_steer_left, _servo_steer_middle, _servo_steer_right = (280, 370, 500)
-
-    steer_servo_state: int = 0
+    steer_servo: Servo = None
+    swivel_servo: Servo = None
+    nod_servo: Servo = None
 
     _ultrasonic_trigger, _ultrasonic_echo = (None, None)
 
@@ -65,6 +54,9 @@ class PiCar:
         pins: Tuple[int, int, int, int, int, int, int, int] = None,
         config_name: str = None,
         threaded: bool = False,
+        ultrasonic_target_rate: int = None,
+        camera_target_rate: int = None,
+        camera_resolution: Tuple(int, int) = None,
     ):
         """
         Initialize the PiCar Module
@@ -104,7 +96,16 @@ class PiCar:
             # specify default pins for real hardware
             if pins is not None:
                 print("Custom pins overridden - not allowed when mock_car is False")
-            pins = (11, 13, 12, 0, 1, 2, 23, 24)
+            pins = (
+                11,
+                13,
+                12,
+                self.SERVO_NOD,
+                self.SERVO_SWIVEL,
+                self.SERVO_STEER,
+                23,
+                24,
+            )
         self._init_pins(pins)
 
         if self._simulated_hardware:
@@ -122,9 +123,28 @@ class PiCar:
             print(
                 "Any attempt to use the PiCamera module in another context will crash your program"
             )
-            self._camera_process = ParallelTask(ps_image_stream, ((640, 360), 15))
+            camera_resolution = (
+                (640, 360) if camera_resolution is None else camera_resolution
+            )
+            camera_target_rate = (
+                15 if camera_target_rate is None else camera_target_rate
+            )
+
+            self._camera_process = ParallelTask(
+                ps_image_stream, (camera_resolution, camera_target_rate)
+            )
+
+            ultrasonic_target_rate = (
+                10 if ultrasonic_target_rate is None else ultrasonic_target_rate
+            )
+
             self._ultrasonic_process = ParallelTask(
-                ps_ultrasonic_dist, (self._ultrasonic_echo, self._ultrasonic_trigger)
+                ps_ultrasonic_dist,
+                (
+                    self._ultrasonic_echo,
+                    self._ultrasonic_trigger,
+                    ultrasonic_target_rate,
+                ),
             )
             # give the camera a bit to wake up
             time.sleep(1)
@@ -152,6 +172,11 @@ class PiCar:
             f"looking for config file: ./{self.MOCK_CAR_CONFIG_FILE_NAME if mock_car else self.PICAR_CONFIG_FILE_NAME}"
         )
 
+        # low middle high
+        nod_servo_config = (280, 370, 500)
+        swivel_servo_config = (280, 370, 500)
+        steer_servo_config = (280, 370, 500)
+
         if os.path.exists(
             self.MOCK_CAR_CONFIG_FILE_NAME if mock_car else self.PICAR_CONFIG_FILE_NAME
         ):
@@ -169,23 +194,27 @@ class PiCar:
                         f"Invalid configuration file, expected 9 elements, found {len(configuration)}"
                     )
                 else:
-                    self.configure_nod_servo_positions(
+                    nod_servo_config = (
                         int(configuration[0]),
                         int(configuration[2]),
                         int(configuration[1]),
                     )
-                    self.configure_swivel_servo_positions(
+                    swivel_servo_config = (
                         int(configuration[3]),
                         int(configuration[5]),
                         int(configuration[4]),
                     )
-                    self.configure_steer_servo_positions(
+                    steer_servo_config = (
                         int(configuration[6]),
                         int(configuration[8]),
                         int(configuration[7]),
                     )
         else:
             print("servo configuration not found, using default values")
+
+        nod_servo = Servo(pins[3], self._servo_global_pwm, *nod_servo_config)
+        swivel_servo = Servo(pins[4], self._servo_global_pwm, *swivel_servo_config)
+        steer_servo = Servo(pins[5], self._servo_global_pwm, *steer_servo_config)
 
         print("PiCar configured successfully")
 
@@ -196,23 +225,19 @@ class PiCar:
         # set initial component states
         self.set_motor(0)
 
-        self.set_nod_servo(0)
-        self.set_swivel_servo(0)
-        self.set_steer_servo(0)
-
     def _init_pins(self, pins):
         """
         pins: List of pins to be configured for hardware, in following order:
-        (motor_pin_1, motor_pin_2, motor_enable, servo_nod, servo_swivel, servo_steer)
+        (motor_enable, motor_pin_1, motor_pin_2, servo_nod, servo_swivel, servo_steer)
         """
 
         (
             self._motor_enable,
             self._motor_pin_1,
             self._motor_pin_2,
-            self._servo_nod_pin,
-            self._servo_swivel_pin,
-            self._servo_steer_pin,
+            _,
+            _,
+            _,
             self._ultrasonic_trigger,
             self._ultrasonic_echo,
         ) = pins
@@ -222,38 +247,20 @@ class PiCar:
         GPIO.setup(self._motor_pin_1, GPIO.OUT, initial=GPIO.LOW)
         GPIO.setup(self._motor_pin_2, GPIO.OUT, initial=GPIO.LOW)
 
-        # setup servo pins
-        if self._simulated_hardware:
-            GPIO.setup(self._servo_nod_pin, GPIO.OUT)
-            GPIO.setup(self._servo_swivel_pin, GPIO.OUT)
-            GPIO.setup(self._servo_steer_pin, GPIO.OUT)
-
         # setup ultrasonic pins
         GPIO.setup(self._ultrasonic_trigger, GPIO.OUT, initial=GPIO.LOW)
         GPIO.setup(self._ultrasonic_echo, GPIO.IN)
 
-    def _init_mock_car(self):
+    def _init_mock_car(self) -> None:
         """
         Initialize car variables for use with RPi Treated as Mock Car
         """
-
-        self._servo_nod_pwm = GPIO.PWM(self._servo_nod_pin, 50)
-        self._servo_swivel_pwm = GPIO.PWM(self._servo_swivel_pin, 50)
-        self._servo_steer_pwm = GPIO.PWM(self._servo_steer_pin, 50)
-
-        self.configure_nod_servo_positions(5, 7.5, 10)
-        self.configure_swivel_servo_positions(5, 7.5, 10)
-        self.configure_steer_servo_positions(5, 7.5, 10)
-
-        self._servo_nod_pwm.start(self._servo_nod_middle)
-        self._servo_swivel_pwm.start(self._servo_swivel_middle)
-        self._servo_steer_pwm.start(self._servo_steer_middle)
 
         self._motor_pwm = GPIO.PWM(self._motor_enable, 1000)
         self._motor_pwm.start(0)
         pass
 
-    def _init_car(self):
+    def _init_car(self) -> None:
         """
         Initialize car variables for use with the actual Adeept Car
         """
@@ -262,10 +269,9 @@ class PiCar:
 
         self._motor_pwm = GPIO.PWM(self._motor_enable, 1000)
         self._motor_pwm.start(0)
-
         pass
 
-    def set_motor(self, duty_cycle, forward=True):
+    def set_motor(self, duty_cycle: int, forward: bool = True) -> None:
         """
         forward (bool):direction of motor spin
         duty_cycle (int): 0->100
@@ -277,7 +283,7 @@ class PiCar:
         self._motor_pwm.ChangeDutyCycle(duty_cycle)
         self.motor_state = duty_cycle
 
-    def reset(self):
+    def reset(self) -> None:
         """
         Reset the hardware - will set all motors and servos to neutral positions
         """
@@ -287,202 +293,29 @@ class PiCar:
         self.set_steer_servo(0)
         self.set_swivel_servo(0)
 
-    def stop(self):
+    def stop(self) -> None:
         """
         Stop the hardware - will kill PWM instance for all motors and servos, and cleanup GPIO
         """
         self._motor_pwm.stop()
-        if self._simulated_hardware:
-            self._servo_nod_pwm.stop()
-            self._servo_swivel_pwm.stop()
-            self._servo_steer_pwm.stop()
-
+        self.nod_servo.stop()
+        self.swivel_servo.stop()
+        self.steer_servo.stop()
         GPIO.cleanup()
-
-    def _calc_servo_duty_cycle(self, left, middle, right, amount, is_left):
-        return (
-            middle - (middle - left) * amount / 10
-            if is_left
-            else (right - middle) * amount / 10 + middle
-        )
-
-    def _set_servo(self, servo, value=None, raw=False):
-        """
-        Generic set servo code
-        Wrapped by specific set servo commands so as to not change the API for students
-        TODO: change API to use this for simplicity
-        """
-        if servo not in [PiCar.SERVO_NOD, PiCar.SERVO_SWIVEL, PiCar.SERVO_STEER]:
-            raise SystemExit(
-                f"Invalid servo specified to set_servo. Expected one of PiCar.SERVO_NOD, PiCar.SERVO_SWIVEL, PiCar.SERVO_STEER"
-            )
-        # handle special input cases
-        if raw:
-            if servo == PiCar.SERVO_NOD:
-                self._servo_global_pwm.set_pwm(self._servo_nod_pin, 0, raw)
-                self.nod_servo_state = raw
-            elif servo == PiCar.SERVO_SWIVEL:
-                self._servo_global_pwm.set_pwm(self._servo_swivel_pin, 0, raw)
-                self.nod_swivel_state = raw
-            elif servo == PiCar.SERVO_STEER:
-                self._servo_global_pwm.set_pwm(self._servo_steer_pin, 0, raw)
-                self.nod_steer_state = raw
-            return
-        if not (isinstance(value, int) or isinstance(value, float)):
-            raise SystemExit(
-                f"value argument must be numeric between -10 and 10. Expected int or float, found {type(value)}"
-            )
-
-        # cast value to correct range
-        safe_value = max(min(10, value), -10)
-        if safe_value != value:
-            print(
-                f"WARNING: value passed to set_[nod|swivel|steer]_servo exceeds expected range. Expected -10 <= value <= 10, found {value}"
-            )
-            print(f"Casting value to {safe_value}")
-        value = safe_value
-
-        is_left, amount = (value < 0, abs(value))
-        duty_cycle = None
-        if servo == PiCar.SERVO_NOD:
-            duty_cycle = self._calc_servo_duty_cycle(
-                self._servo_nod_left,
-                self._servo_nod_middle,
-                self._servo_nod_right,
-                amount,
-                is_left,
-            )
-        elif servo == PiCar.SERVO_SWIVEL:
-            duty_cycle = self._calc_servo_duty_cycle(
-                self._servo_swivel_left,
-                self._servo_swivel_middle,
-                self._servo_swivel_right,
-                amount,
-                is_left,
-            )
-        elif servo == PiCar.SERVO_STEER:
-            duty_cycle = self._calc_servo_duty_cycle(
-                self._servo_steer_left,
-                self._servo_steer_middle,
-                self._servo_steer_right,
-                amount,
-                is_left,
-            )
-
-        if self._simulated_hardware:
-            if servo == PiCar.SERVO_NOD:
-                self._servo_nod_pwm.ChangeDutyCycle(duty_cycle)
-            elif servo == PiCar.SERVO_SWIVEL:
-                self._servo_swivel_pwm.ChangeDutyCycle(duty_cycle)
-            elif servo == PiCar.SERVO_STEER:
-                self._servo_steer_pwm.ChangeDutyCycle(duty_cycle)
-        else:
-            if servo == PiCar.SERVO_NOD:
-                self._servo_global_pwm.set_pwm(self._servo_nod_pin, 0, int(duty_cycle))
-            elif servo == PiCar.SERVO_SWIVEL:
-                self._servo_global_pwm.set_pwm(
-                    self._servo_swivel_pin, 0, int(duty_cycle)
-                )
-            elif servo == PiCar.SERVO_STEER:
-                self._servo_global_pwm.set_pwm(
-                    self._servo_steer_pin, 0, int(duty_cycle)
-                )
-        if servo == PiCar.SERVO_NOD:
-            self.nod_servo_state = value
-        elif servo == PiCar.SERVO_SWIVEL:
-            self.swivel_servo_state = value
-        elif servo == PiCar.SERVO_STEER:
-            self.steer_servo_state = value
-
-    def configure_nod_servo_positions(self, left=None, middle=None, right=None):
-        """
-        Provide alternate nod servo positions
-        Note: when setting servo positon, values between left and middle or left and right are linearly interpolated
-        left (int): servo duty cycle for left position
-        middle (int): servo duty cycle for middle position
-        right (int): servo duty cycle for right position
-        """
-        if left is None:
-            left = self._servo_nod_left
-        if middle is None:
-            middle = self._servo_nod_middle
-        if right is None:
-            right = self._servo_nod_right
-        if False in [
-            isinstance(x, int) or isinstance(x, float) for x in (left, middle, right)
-        ]:
-            raise SystemExit(
-                f"All args must be integer values, expected int, int, int, found: {type(left)}, {type(middle)}, {type(right)}"
-            )
-        print(f"nod : {left} , {middle} , {right}")
-        self._servo_nod_left = left
-        self._servo_nod_middle = middle
-        self._servo_nod_right = right
 
     def set_nod_servo(self, value, raw=False):
         """
         value (int): between -10 and 10, -10 being max down, 0 being center, and 10 being max up
         raw (int): only to be used for TA debugging
         """
-        self._set_servo(PiCar.SERVO_NOD, value, raw)
-
-    def configure_swivel_servo_positions(self, left=None, middle=None, right=None):
-        """
-        Provide alternate swivel servo positions
-        Note: when setting servo positon, values between left and middle or left and right are linearly interpolated
-        left (int): servo duty cycle for left position
-        middle (int): servo duty cycle for middle position
-        right (int): servo duty cycle for right position
-        """
-        if left is None:
-            left = self._servo_swivel_left
-        if middle is None:
-            middle = self._servo_swivel_middle
-        if right is None:
-            right = self._servo_swivel_right
-        if False in [
-            isinstance(x, int) or isinstance(x, float) for x in (left, middle, right)
-        ]:
-            raise SystemExit(
-                f"All args must be integer values, expected int, int, int, found: {type(left)}, {type(middle)}, {type(right)}"
-            )
-        print(f"swivel : {left} , {middle} , {right}")
-        self._servo_swivel_left = left
-        self._servo_swivel_middle = middle
-        self._servo_swivel_right = right
+        self.nod_servo.set_position(value, raw)
 
     def set_swivel_servo(self, value, raw=False):
         """
         value (int): between -10 and 10, -10 being max left, 0 being center, and 10 being max right
         raw (int): only to be used for TA debugging
         """
-        self._set_servo(PiCar.SERVO_SWIVEL, value, raw)
-
-    def configure_steer_servo_positions(self, left=None, middle=None, right=None):
-        """
-        Provide alternate steer servo positions
-        Note: when setting servo positon, values between left and middle or left and right are linearly interpolated
-        left (int): servo duty cycle for left position
-        middle (int): servo duty cycle for middle position
-        right (int): servo duty cycle for right position
-        """
-        if left is None:
-            left = self._servo_steer_left
-        if middle is None:
-            middle = self._servo_steer_middle
-        if right is None:
-            right = self._servo_steer_right
-        if False in [
-            isinstance(x, int) or isinstance(x, float) for x in (left, middle, right)
-        ]:
-            raise SystemExit(
-                f"All args must be integer values, expected int, int, int, found: {type(left)}, {type(middle)}, {type(right)}"
-            )
-
-        print(f"steer : {left} , {middle} , {right}")
-        self._servo_steer_left = left
-        self._servo_steer_middle = middle
-        self._servo_steer_right = right
+        self.swivel_servo.set_position(value, raw)
 
     def set_steer_servo(self, value, raw=False):
         """
@@ -490,7 +323,7 @@ class PiCar:
         value (int): between -10 and 10, -10 being max left, 0 being center, and 10 being max right
         raw (int): only to be used for TA debugging
         """
-        self._set_servo(PiCar.SERVO_STEER, value, raw)
+        self.steer_servo.set_position(value, raw)
 
     def read_distance(self) -> float:
         """
@@ -541,35 +374,35 @@ class PiCar:
         entries = [
             ["State"],
             ["Motor", self.motor_state],
-            ["Nod Servo", self.nod_servo_state],
-            ["Swivel Servo", self.swivel_servo_state],
-            ["Steer Servo", self.steer_servo_state],
+            ["Nod Servo", self.nod_servo.state],
+            ["Swivel Servo", self.swivel_servo.state],
+            ["Steer Servo", self.steer_servo.state],
             ["Configuration"],
             [
                 "Nod Servo (l, m, r)",
-                self._servo_nod_left,
-                self._servo_nod_middle,
-                self._servo_nod_right,
+                self.nod_servo.low,
+                self.nod_servo.middle,
+                self.nod_servo.high,
             ],
             [
                 "Swivel Servo (l, m, r)",
-                self._servo_swivel_left,
-                self._servo_swivel_middle,
-                self._servo_swivel_right,
+                self.swivel_servo.low,
+                self.swivel_servo.middle,
+                self.swivel_servo.high,
             ],
             [
                 "Steer Servo (l, m, r)",
-                self._servo_steer_left,
-                self._servo_steer_middle,
-                self._servo_steer_right,
+                self.steer_servo.low,
+                self.steer_servo.middle,
+                self.steer_servo.high,
             ],
             ["Pins"],
             ["Motor Enable", self._motor_enable],
             ["Motor 1", self._motor_pin_1],
             ["Motor 2", self._motor_pin_2],
-            ["Nod Servo", self._servo_nod_pin],
-            ["Swivel Servo", self._servo_swivel_pin],
-            ["Steer Servo", self._servo_steer_pin],
+            ["Nod Servo", self.nod_servo._pin],
+            ["Swivel Servo", self.swivel_servo._pin],
+            ["Steer Servo", self.steer_servo._pin],
             ["Trigger", self._ultrasonic_trigger],
             ["Echo", self._ultrasonic_echo],
         ]

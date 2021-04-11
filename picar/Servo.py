@@ -7,7 +7,7 @@ class Servo:
     """
 
     # Class Variables
-    _simulated_hardware = None
+    _simulated_hardware: bool = None
 
     _pin: int = None
 
@@ -37,7 +37,7 @@ class Servo:
         self._init_pin(pin)
 
         if self._simulated_hardware:
-            self._init_mock_car()
+            self._init_servo_hardware()
 
         self.configure_positions(
             low,
@@ -45,7 +45,7 @@ class Servo:
             high,
         )
 
-        self.set(0)
+        self.set_position(0)
 
     def _init_pins(self, pin: int) -> None:
         """
@@ -57,7 +57,7 @@ class Servo:
         if self._simulated_hardware:
             GPIO.setup(self._pin, GPIO.OUT)
 
-    def _init_mock_car(self) -> None:
+    def _init_servo_hardware(self) -> None:
         """
         Initialize car variables for use with RPi Treated as Mock Car
         """
