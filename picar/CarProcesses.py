@@ -6,7 +6,7 @@ from typing import Tuple
 
 
 def ps_image_stream(
-    queue, resolution: Tuple(int, int) = (1280, 720), framerate: int = 30
+    queue, resolution: Tuple[int, int] = (1280, 720), framerate: int = 30
 ):
     """
     The process function to take photos from the camera

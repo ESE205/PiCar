@@ -56,7 +56,7 @@ class PiCar:
         threaded: bool = False,
         ultrasonic_target_rate: int = None,
         camera_target_rate: int = None,
-        camera_resolution: Tuple(int, int) = None,
+        camera_resolution: Tuple[int, int] = None,
     ):
         """
         Initialize the PiCar Module
