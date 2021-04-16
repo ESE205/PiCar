@@ -7,7 +7,7 @@ from Adafruit_GPIO.GPIO import RPiGPIOAdapter as Adafruit_GPIO_Adapter
 import Adafruit_MCP3008
 
 from picar.CarProcesses import ps_image_stream, ps_ultrasonic_dist
-from picar.ParallelTask import ParallelTask
+from picar.ParallelTask import CameraProcess, UltrasonicProcess
 from picar.Servo import Servo
 
 import os.path
@@ -130,22 +130,28 @@ class PiCar:
                 15 if camera_target_rate is None else camera_target_rate
             )
 
-            self._camera_process = ParallelTask(
-                ps_image_stream, (camera_resolution, camera_target_rate)
-            )
+            # self._camera_process = ParallelTask(
+            #    ps_image_stream, (camera_resolution, camera_target_rate)
+            # )
+            self._camera_process = CameraProcess(camera_resolution, camera_target_rate)
+            self._camera_process.start()
 
             ultrasonic_target_rate = (
                 10 if ultrasonic_target_rate is None else ultrasonic_target_rate
             )
 
-            self._ultrasonic_process = ParallelTask(
-                ps_ultrasonic_dist,
-                (
-                    self._ultrasonic_echo,
-                    self._ultrasonic_trigger,
-                    ultrasonic_target_rate,
-                ),
+            # self._ultrasonic_process = ParallelTask(
+            #    ps_ultrasonic_dist,
+            #    (
+            #        self._ultrasonic_echo,
+            #        self._ultrasonic_trigger,
+            #        ultrasonic_target_rate,
+            #    ),
+            # )
+            self._ultrasonic_process = UltrasonicProcess(
+                self._ultrasonic_echo, self._ultrasonic_trigger, ultrasonic_target_rate
             )
+            self._ultrasonic_process.start()
             # give the camera a bit to wake up
             time.sleep(1)
 

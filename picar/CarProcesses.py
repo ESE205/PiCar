@@ -6,7 +6,10 @@ from typing import Tuple
 
 
 def ps_image_stream(
-    queue, resolution: Tuple[int, int] = (1280, 720), framerate: int = 30
+    should_continue: bool,
+    queue,
+    resolution: Tuple[int, int] = (1280, 720),
+    framerate: int = 30,
 ):
     """
     The process function to take photos from the camera
@@ -24,12 +27,18 @@ def ps_image_stream(
         ):
             queue.put((frame.array, time()))
             rawCapture.truncate(0)
+            if not should_continue:
+                break
     except KeyboardInterrupt:
         pass
 
 
 def ps_ultrasonic_dist(
-    queue, ECHO_PIN: int, TRIG_PIN: int, target_sample_rate: int = 10
+    should_continue: bool,
+    queue,
+    ECHO_PIN: int,
+    TRIG_PIN: int,
+    target_sample_rate: int = 10,
 ):
     """
     The process function to read ultrasonic values
@@ -44,7 +53,7 @@ def ps_ultrasonic_dist(
 
     nextTime = time()
     try:
-        while True:
+        while should_continue:
 
             if time() > nextTime:
                 # trigger a reading
