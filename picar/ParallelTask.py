@@ -1,4 +1,5 @@
 from multiprocessing import Process, Manager, Queue
+from typing import Tuple
 
 
 class UltrasonicProcess(Process):

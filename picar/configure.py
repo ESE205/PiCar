@@ -85,3 +85,5 @@ def configure_car(pi_car_instance: PiCar) -> None:
                 )
 
             config.write(f"{int(final_position)}\n")
+
+    print("Config written to file")
