@@ -76,7 +76,7 @@ class Servo:
         return (
             self.middle - (self.middle - self.low) * amount / 10
             if is_left
-            else (self.right - self.middle) * amount / 10 + self.middle
+            else (self.high - self.middle) * amount / 10 + self.middle
         )
 
     def set_position(self, value: int = None, raw: int = None) -> None:
@@ -118,27 +118,27 @@ class Servo:
         self.state = value
 
     def configure_positions(
-        self, left: int = None, middle: int = None, right: int = None
+        self, low: int = None, middle: int = None, high: int = None
     ) -> None:
         """
         Provide alternate nod servo positions
-        Note: when setting servo positon, values between left and middle or left and right are linearly interpolated
-        left (int): servo duty cycle for left position
+        Note: when setting servo positon, values between low and middle or low and high are linearly interpolated
+        low (int): servo duty cycle for low position
         middle (int): servo duty cycle for middle position
-        right (int): servo duty cycle for right position
+        high (int): servo duty cycle for high position
         """
-        if left is None:
-            left = self._left
+        if low is None:
+            low = self._low
         if middle is None:
             middle = self._middle
-        if right is None:
-            right = self._right
+        if high is None:
+            high = self._high
         if False in [
-            isinstance(x, int) or isinstance(x, float) for x in (left, middle, right)
+            isinstance(x, int) or isinstance(x, float) for x in (low, middle, high)
         ]:
             raise SystemExit(
-                f"All args must be integer values, expected int, int, int, found: {type(left)}, {type(middle)}, {type(right)}"
+                f"All args must be integer values, expected int, int, int, found: {type(low)}, {type(middle)}, {type(high)}"
             )
-        self._left = left
-        self._middle = middle
-        self._right = right
+        self.low = low
+        self.middle = middle
+        self.high = high
