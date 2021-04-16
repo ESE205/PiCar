@@ -34,7 +34,7 @@ class Servo:
             self._simulated_hardware = False
             self._pwm = global_pwm_instance
 
-        self._init_pin(pin)
+        self._init_pins(pin)
 
         if self._simulated_hardware:
             self._init_servo_hardware()
