@@ -120,7 +120,7 @@ class CameraProcess(Process):
         self.resolution = resolution
         self.framerate = framerate
 
-        self.kill = multiprocessing.Event()
+        self.kill = Event()
 
     def get_from_queue(self):
         """
