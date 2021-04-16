@@ -212,9 +212,9 @@ class PiCar:
         else:
             print("servo configuration not found, using default values")
 
-        nod_servo = Servo(pins[3], self._servo_global_pwm, *nod_servo_config)
-        swivel_servo = Servo(pins[4], self._servo_global_pwm, *swivel_servo_config)
-        steer_servo = Servo(pins[5], self._servo_global_pwm, *steer_servo_config)
+        self.nod_servo = Servo(pins[3], self._servo_global_pwm, *nod_servo_config)
+        self.swivel_servo = Servo(pins[4], self._servo_global_pwm, *swivel_servo_config)
+        self.steer_servo = Servo(pins[5], self._servo_global_pwm, *steer_servo_config)
 
         print("PiCar configured successfully")
 
