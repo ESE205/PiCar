@@ -195,19 +195,19 @@ class PiCar:
                     )
                 else:
                     nod_servo_config = (
+                        int(configuration[1]),
                         int(configuration[0]),
                         int(configuration[2]),
-                        int(configuration[1]),
                     )
                     swivel_servo_config = (
+                        int(configuration[4]),
                         int(configuration[3]),
                         int(configuration[5]),
-                        int(configuration[4]),
                     )
                     steer_servo_config = (
+                        int(configuration[7]),
                         int(configuration[6]),
                         int(configuration[8]),
-                        int(configuration[7]),
                     )
         else:
             print("servo configuration not found, using default values")
