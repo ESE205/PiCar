@@ -43,3 +43,6 @@ class ParallelTask:
         data = ParallelTask.get_from_queue(self._queue)
 
         return data
+
+    def stop(self):
+        self._process.stop()
