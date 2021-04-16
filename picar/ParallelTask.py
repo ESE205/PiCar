@@ -45,4 +45,4 @@ class ParallelTask:
         return data
 
     def stop(self):
-        self._process.stop()
+        self._process.shutdown()
