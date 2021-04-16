@@ -22,7 +22,7 @@ class UltrasonicProcess(Process):
     def __init__(
         self,
         echo_pin: int,
-        TRIG_PIN: int,
+        trig_pin: int,
         target_sample_rate: int = 10,
     ):
         Process.__init__(self)
