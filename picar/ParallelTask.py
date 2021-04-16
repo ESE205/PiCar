@@ -1,4 +1,4 @@
-from multiprocessing import Process, Manager, Queue
+from multiprocessing import Process, Manager, Queue, Event
 from typing import Tuple
 
 
@@ -35,7 +35,7 @@ class UltrasonicProcess(Process):
         self.trig_pin = trig_pin
         self.echo_pin = echo_pin
 
-        self.kill = multiprocessing.Event()
+        self.kill = Event()
 
     def get_from_queue(self):
         """
