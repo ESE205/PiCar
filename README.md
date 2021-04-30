@@ -279,10 +279,10 @@ car = PiCar(mock_car=True, pins=pins)
 
 It is possible to configure the framerate and resolution of the PiCar class when operating in threaded mode.
 
-These default to `(640, 360)` for your resolution, and `15fps` for your framerate. Trying to set these too large or too high could lead to a performance bottleneck, so modify this value cautiously. Additionally, the framerate is only a target value, not a gauranteed value.
+These default to `(640, 368)` for your resolution, and `15fps` for your framerate. Trying to set these too large or too high could lead to a performance bottleneck, so modify this value cautiously. Additionally, the framerate is only a target value, not a gauranteed value.
 
 ```py
-picar = PiCar(threaded=True, camera_target_rate=15, camera_resolution=(640,360))
+picar = PiCar(threaded=True, camera_target_rate=15, camera_resolution=(640,368))
 ```
 
 ## Ultrasonic Target Rate <a name="UltrasonicTargetRate"></a>

@@ -126,7 +126,7 @@ class PiCar:
                 "Any attempt to use the PiCamera module in another context will crash your program"
             )
             camera_resolution = (
-                (640, 360) if camera_resolution is None else camera_resolution
+                (640, 368) if camera_resolution is None else camera_resolution
             )
             camera_target_rate = (
                 15 if camera_target_rate is None else camera_target_rate

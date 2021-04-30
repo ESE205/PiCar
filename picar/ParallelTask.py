@@ -156,7 +156,7 @@ class CameraProcess(Process):
         for frame in camera.capture_continuous(
             rawCapture, format="bgr", use_video_port=True
         ):
-            queue.put((frame.array, time()))
+            self._queue.put((frame.array, time()))
             rawCapture.truncate(0)
             if self.kill.is_set():
                 break
