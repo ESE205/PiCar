@@ -117,9 +117,11 @@ class CameraProcess(Process):
 
     resolution: Tuple[int, int] = None
     framerate: int = None
+    task = None
 
     def __init__(
         self,
+        cam_task,
         resolution: Tuple[int, int] = (1280, 720),
         framerate: int = 30,
     ):
@@ -131,6 +133,8 @@ class CameraProcess(Process):
 
         self.resolution = resolution
         self.framerate = framerate
+
+        self.task = cam_task
 
         self.kill = Event()
 
@@ -159,7 +163,8 @@ class CameraProcess(Process):
         for frame in camera.capture_continuous(
             rawCapture, format="bgr", use_video_port=True
         ):
-            self._queue.put((frame.array, time()))
+            res = self.task(frame.array)
+            self._queue.put((res, time()))
             rawCapture.truncate(0)
             if self.kill.is_set():
                 break

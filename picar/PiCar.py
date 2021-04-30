@@ -57,6 +57,7 @@ class PiCar:
         ultrasonic_target_rate: int = None,
         camera_target_rate: int = None,
         camera_resolution: Tuple[int, int] = None,
+        cam_task=None,
     ):
         """
         Initialize the PiCar Module
@@ -135,7 +136,11 @@ class PiCar:
             # self._camera_process = ParallelTask(
             #    ps_image_stream, (camera_resolution, camera_target_rate)
             # )
-            self._camera_process = CameraProcess(camera_resolution, camera_target_rate)
+            if cam_task is None:
+                raise SystemExit("FATAL: you must provide a cam_task to the PiCar")
+            self._camera_process = CameraProcess(
+                cam_task, camera_resolution, camera_target_rate
+            )
             self._camera_process.start()
 
             ultrasonic_target_rate = (
