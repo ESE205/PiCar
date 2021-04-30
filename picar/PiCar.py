@@ -310,8 +310,12 @@ class PiCar:
         self.swivel_servo.stop()
         self.steer_servo.stop()
         if self._threaded:
-            self._camera_process.stop()
-            self._ultrasonic_process.stop()
+            # self._camera_process.stop()
+            self._camera_process.terminate()
+            self._camera_process.join()
+            # self._ultrasonic_process.stop()
+            self._ultrasonic_process.terminate()
+            self._ultrasonic_process.join()
         GPIO.cleanup()
 
     def set_nod_servo(self, value, raw=False):
