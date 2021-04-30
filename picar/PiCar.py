@@ -79,6 +79,8 @@ class PiCar:
 
         self._simulated_hardware = mock_car
 
+        GPIO.setwarnings(False)
+
         GPIO.setmode(GPIO.BOARD)
 
         print("configuring pins...")

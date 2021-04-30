@@ -85,7 +85,7 @@ class UltrasonicProcess(Process):
 
                 self._queue.put((dist, time()))
 
-                nextTime += 1 / target_sample_rate
+                nextTime += 1 / self.target_sample_rate
 
     def get_result(self):
         """
@@ -112,7 +112,7 @@ class CameraProcess(Process):
 
     _queue = None
 
-    resolution: int = None
+    resolution: Tuple[int, int] = None
     framerate: int = None
 
     def __init__(
@@ -150,8 +150,8 @@ class CameraProcess(Process):
     def run(self):
 
         camera = PiCamera()
-        camera.resolution = resolution
-        camera.framerate = framerate
+        camera.resolution = self.resolution
+        camera.framerate = self.framerate
         rawCapture = PiRGBArray(camera, size=resolution)
         for frame in camera.capture_continuous(
             rawCapture, format="bgr", use_video_port=True
