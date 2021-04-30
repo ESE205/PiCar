@@ -1,7 +1,9 @@
 from multiprocessing import Process, Manager, Queue, Event
 
-# from time import time, sleep
 import RPi.GPIO as GPIO
+from time import time, sleep
+from picamera.array import PiRGBArray
+from picamera import PiCamera
 
 # from picamera.array import PiRGBArray
 # from picamera import PiCamera
@@ -60,7 +62,6 @@ class UltrasonicProcess(Process):
         return (*v, tossed_readings)
 
     def run(self):
-        from time import time, sleep
 
         start_time, end_time = (0, 0)
 
@@ -147,9 +148,6 @@ class CameraProcess(Process):
         return (*v, tossed_readings)
 
     def run(self):
-        from time import time, sleep
-        from picamera.array import PiRGBArray
-        from picamera import PiCamera
 
         camera = PiCamera()
         camera.resolution = resolution
