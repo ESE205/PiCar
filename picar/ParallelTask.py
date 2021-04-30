@@ -86,6 +86,7 @@ class UltrasonicProcess(Process):
                 self._queue.put((dist, time()))
 
                 nextTime += 1 / self.sample_rate
+        time.sleep(0.1)
         self._queue.close()
         self._queue.join_thread()
 
@@ -162,6 +163,7 @@ class CameraProcess(Process):
             rawCapture.truncate(0)
             if self.kill.is_set():
                 break
+        time.sleep(0.1)
         self._queue.close()
         self._queue.join_thread()
 
