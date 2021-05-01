@@ -137,7 +137,9 @@ class PiCar:
             #    ps_image_stream, (camera_resolution, camera_target_rate)
             # )
             if cam_task is None:
-                raise SystemExit("FATAL: you must provide a cam_task to the PiCar")
+                raise SystemExit(
+                    "FATAL: you must provide a cam_task to the PiCar while in threaded mode"
+                )
             self._camera_process = CameraProcess(
                 cam_task, camera_resolution, camera_target_rate
             )

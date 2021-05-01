@@ -70,8 +70,12 @@ car = PiCar(mock_car=True, pins=None, config_name=None)
 # i.e. provide servo configuration for car 3
 car = PiCar(mock_car=False, pins=None, config_name="PICAR_CONFIG_CAR3.txt")
 
+# A method which passes the image through the thread to the PiCar main class
+def send_image(img):
+    return img
+
 # initialize PiCar in threaded mode
-car = PiCar(mock_car=False, threaded=True)
+car = PiCar(mock_car=False, threaded=True, cam_task=send_image)
 
 # turn on the DC motor- duty_cycle ranges 0-100, forward is optional but is either True (forward) or False (backward)
 car.set_motor(100)
@@ -149,13 +153,36 @@ To remove the need for complicated timing considerations, the PiCar supports thr
 
 > NOTE: If using threaded mode, the PiCamera module cannot be instantiated in any user code. To get images from the camera, only the PiCar.get_image() method should be used.
 
+When the PiCar is running in threaded mode, it must have a `cam_task` parameter. This is a python function which will be performed upon the images in the same thread as the taking of the pictures, and will return a result, which will be returned upon a call to `PiCar.get_image()`. This method takes a single parameter, an image taken with the PiCamera, and can return whatever you like. This approach allows you to offload image processing to a different thread, and reduce the amount of data being passed between processes, which will improve timing consistency. There are several examples below.
+
 ```python
 
 # import PiCar class
 from picar import PiCar
 
+# A method which passes the image through the thread to the PiCar main class
+# This would achieve the same result as the current PiCar get_image() implementation
+def send_image(img):
+    return img
+
 # initialize PiCar in threaded mode
-car = PiCar(mock_car=False, threaded=True)
+car = PiCar(mock_car=False, threaded=True, cam_task=send_image)
+
+img = car.get_image() # returns an image if one is available, or None
+
+# A method which performs some processing on the image, and returns an angle
+def get_angle(img):
+    hsv = cv2Color(img, cv2.COLOR_BGR2HSV)
+    mask = cv2.inRange(hsv, (100, 100, 200), (150, 150, 250))
+    moments = cv2.moments(mask)
+    # ... other code
+    # compute the angle
+    return angle
+
+# initialize PiCar in threaded mode
+car = PiCar(mock_car=False, threaded=True, cam_task=get_angle)
+
+img = car.get_image() # returns an angle if one is available, or none
 
 ```
 
