@@ -1,5 +1,7 @@
 import RPi.GPIO as GPIO
 import time
+import redis
+import struct
 
 import Adafruit_PCA9685 as PWM_HAT
 from Adafruit_GPIO.GPIO import RPiGPIOAdapter as Adafruit_GPIO_Adapter
@@ -57,6 +59,8 @@ class PiCar:
     _camera_process, _ultrasonic_process = (None, None)
 
     adc = None
+
+    _redis = redis.Redis(host="localhost", port=6379, db=0)
 
     def __init__(self, mock_car=True, pins=None, config_name=None, threaded=False):
         """
@@ -479,9 +483,9 @@ class PiCar:
 
     def set_steer_servo(self, value, raw=False):
         """
-        Set the steer servo 
+        Set the steer servo
         value (int): between -10 and 10, -10 being max left, 0 being center, and 10 being max right
-        raw (int): only to be used for TA debugging 
+        raw (int): only to be used for TA debugging
         """
         self._set_servo(PiCar.SERVO_STEER, value, raw)
 
@@ -491,7 +495,8 @@ class PiCar:
         return (double): distance in cm from object as detected by ultrasonic sensor
         """
         if self._threaded:
-            return self._ultrasonic_process.get_result()[0]
+            return struct.unpack("f", self._redis.get("distance"))
+            # return self._ultrasonic_process.get_result()[0]
         else:
             # activate trigger
             GPIO.output(self._ultrasonic_trigger, GPIO.HIGH)
@@ -518,7 +523,8 @@ class PiCar:
                 "FATAL: get_image can only be called when PiCar is run in threaded mode"
             )
 
-        return self._camera_process.get_result()[0]
+        return self._redis.get("camera")
+        # return self._camera_process.get_result()[0]
 
     def __repr__(self):
         """

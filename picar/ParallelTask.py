@@ -5,7 +5,8 @@ class ParallelTask:
 
     _process = None
 
-    _queue = None
+    _queue = redis.Redis(host="localhost", port=6379, db=0)
+    # _queue = None
 
     @staticmethod
     def get_from_queue(queue):
@@ -28,7 +29,7 @@ class ParallelTask:
 
         manager = Manager()
 
-        self._queue = manager.Queue()
+        # self._queue = manager.Queue()
 
         self._process = Process(target=funct, args=(self._queue, *funct_args))
 

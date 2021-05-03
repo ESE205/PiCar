@@ -19,7 +19,8 @@ def ps_image_stream(queue, resolution=(1280, 720), framerate=30):
         for frame in camera.capture_continuous(
             rawCapture, format="bgr", use_video_port=True
         ):
-            queue.put((frame.array, time()))
+            queue.set("camera", frame.array)
+            # queue.put((frame.array, time()))
             rawCapture.truncate(0)
     except KeyboardInterrupt:
         pass
@@ -56,7 +57,8 @@ def ps_ultrasonic_dist(queue, ECHO_PIN, TRIG_PIN, target_sample_rate=10):
                 # Speed of sound 34300 cm/sec
                 dist = (end_time - start_time) * 34300 / 2
 
-                queue.put((dist, time()))
+                queue.set("distance", dist)
+                # queue.put((dist, time()))
 
                 nextTime += 1 / target_sample_rate
     except KeyboardInterrupt:
