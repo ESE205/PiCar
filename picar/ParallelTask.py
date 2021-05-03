@@ -1,4 +1,5 @@
 from multiprocessing import Process, Manager, Queue
+import redis
 
 
 class ParallelTask:
