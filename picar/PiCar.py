@@ -495,7 +495,8 @@ class PiCar:
         return (double): distance in cm from object as detected by ultrasonic sensor
         """
         if self._threaded:
-            return struct.unpack("f", self._redis.get("distance"))
+            return self._redis.get("distance")
+            # return struct.unpack("f", self._redis.get("distance"))
             # return self._ultrasonic_process.get_result()[0]
         else:
             # activate trigger
