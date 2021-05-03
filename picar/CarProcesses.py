@@ -19,7 +19,7 @@ def ps_image_stream(queue, resolution=(1280, 720), framerate=30):
         for frame in camera.capture_continuous(
             rawCapture, format="bgr", use_video_port=True
         ):
-            queue.set("camera", bytearray(frame.array))
+            queue.set("camera", bytes(frame.array))
             # queue.put((frame.array, time()))
             rawCapture.truncate(0)
     except KeyboardInterrupt:
