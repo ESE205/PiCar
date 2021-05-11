@@ -220,11 +220,13 @@ class PiCar:
                         int(configuration[0]),
                         int(configuration[2]),
                     )
+                    
                     swivel_servo_config = (
                         int(configuration[4]),
                         int(configuration[3]),
                         int(configuration[5]),
                     )
+
                     steer_servo_config = (
                         int(configuration[7]),
                         int(configuration[6]),
@@ -424,7 +426,7 @@ class PiCar:
         TODO: Add additional variables (i.e. simulated or not, whether all PWMs are configured, etc)
         TODO: Add config filename
         """
-        with open(os.path.join(os.path.dirname(__file__), "test.txt"), "r") as ver:
+        with open(os.path.join(os.path.dirname(__file__), "VERSION"), "r") as ver:
             version = ver.read().strip()
 
         entries = [
