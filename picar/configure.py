@@ -1,5 +1,4 @@
 from picar import PiCar
-from time import sleep as wait
 
 
 def configure_car(pi_car_instance: PiCar) -> None:

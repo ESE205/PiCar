@@ -1,4 +1,4 @@
-from multiprocessing import Process, Manager, Queue, Event
+from multiprocessing import Process, Event
 import redis
 
 import RPi.GPIO as GPIO
@@ -6,8 +6,6 @@ from time import time, sleep
 from picamera.array import PiRGBArray
 from picamera import PiCamera
 
-# from picamera.array import PiRGBArray
-# from picamera import PiCamera
 from typing import Tuple
 
 
