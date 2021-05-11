@@ -1,4 +1,5 @@
 from multiprocessing import Process, Manager, Queue, Event
+import redis
 
 import RPi.GPIO as GPIO
 from time import time, sleep
@@ -19,7 +20,7 @@ class UltrasonicProcess(Process):
     target_sample_rate: Int = target sample rate
     """
 
-    _queue = None
+    _db = redis.Redis(host="localhost", port=6379, db=0)
 
     TRIG_TIME = 0.00001
 
@@ -35,31 +36,11 @@ class UltrasonicProcess(Process):
     ):
         Process.__init__(self)
 
-        manager = Manager()
-
-        self._queue = manager.Queue()
-
         self.sample_rate = target_sample_rate
         self.trig_pin = trig_pin
         self.echo_pin = echo_pin
 
         self.kill = Event()
-
-    def get_from_queue(self):
-        """
-        The method to flush the queues and return the most recent result
-        Args:
-        queue: multiprocessing.Manager.Queue
-        return: (data value, time read, datapoints in queue when called)
-        """
-        v = (None, None)
-        tossed_readings = 0
-        while not self._queue.empty():
-            tossed_readings += 1
-            # don't block if the queue is busy
-            v = self._queue.get_nowait()
-        # expand the queue 2-tuple (reading, time read) into a flat 3-tuple
-        return (*v, tossed_readings)
 
     def run(self):
 
@@ -82,23 +63,11 @@ class UltrasonicProcess(Process):
 
                 # Speed of sound 34300 cm/sec
                 dist = (end_time - start_time) * 34300 / 2
-
-                self._queue.put((dist, time()))
+                dist_time = time()
+                self._db.set("dist_ps_result", dist, time())
+                self._db.set("dist_update_time", dist_time)
 
                 nextTime += 1 / self.sample_rate
-        time.sleep(0.1)
-        self._queue.close()
-        self._queue.join_thread()
-
-    def get_result(self):
-        """
-        Method to return process result
-        data takes the format (reading, time read, values in queue when read)
-        """
-        # note that get_from_queue empties the queue
-        data = self.get_from_queue()
-
-        return data
 
     def stop(self):
         self.kill.set()
@@ -113,7 +82,7 @@ class CameraProcess(Process):
     target_sample_rate: Int = target sample rate
     """
 
-    _queue = None
+    _db = redis.Redis(host="localhost", port=6379, db=0)
 
     resolution: Tuple[int, int] = None
     framerate: int = None
@@ -121,15 +90,11 @@ class CameraProcess(Process):
 
     def __init__(
         self,
-        cam_task,
+        cam_task=None,
         resolution: Tuple[int, int] = (1280, 720),
         framerate: int = 30,
     ):
         Process.__init__(self)
-
-        manager = Manager()
-
-        self._queue = manager.Queue()
 
         self.resolution = resolution
         self.framerate = framerate
@@ -137,22 +102,6 @@ class CameraProcess(Process):
         self.task = cam_task
 
         self.kill = Event()
-
-    def get_from_queue(self):
-        """
-        The method to flush the queues and return the most recent result
-        Args:
-        queue: multiprocessing.Manager.Queue
-        return: (data value, time read, datapoints in queue when called)
-        """
-        v = (None, None)
-        tossed_readings = 0
-        while not self._queue.empty():
-            tossed_readings += 1
-            # don't block if the queue is busy
-            v = self._queue.get_nowait()
-        # expand the queue 2-tuple (reading, time read) into a flat 3-tuple
-        return (*v, tossed_readings)
 
     def run(self):
 
@@ -163,24 +112,19 @@ class CameraProcess(Process):
         for frame in camera.capture_continuous(
             rawCapture, format="bgr", use_video_port=True
         ):
-            res = self.task(frame.array)
-            self._queue.put((res, time()))
+
+            # TODO test this to make sure it sends fine
+            res = frame.array
+            if self.task is not None:
+                res = self.task(frame.array)
+            else:
+                res = bytes(res)
+            cam_time = time()
+            self._db.set("cam_ps_result", res)
+            self._db.set("cam_update_time", cam_time)
             rawCapture.truncate(0)
             if self.kill.is_set():
                 break
-        time.sleep(0.1)
-        self._queue.close()
-        self._queue.join_thread()
-
-    def get_result(self):
-        """
-        Method to return process result
-        data takes the format (reading, time read, values in queue when read)
-        """
-        # note that get_from_queue empties the queue
-        data = self.get_from_queue()
-
-        return data
 
     def stop(self):
         self.kill.set()

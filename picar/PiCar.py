@@ -11,6 +11,8 @@ from picar.ParallelTask import CameraProcess, UltrasonicProcess
 from picar.Servo import Servo
 
 import os.path
+import redis
+import struct
 
 
 class PiCar:
@@ -45,6 +47,8 @@ class PiCar:
     _threaded: bool = None
 
     _camera_process, _ultrasonic_process = (None, None)
+
+    _redis = None
 
     adc = None
 
@@ -120,6 +124,9 @@ class PiCar:
 
         if self._threaded:
             print("Program is running in THREADED MODE")
+
+            self._redis = redis.Redis(host="localhost", port=6379, db=0)
+
             print(
                 "NOTE: All use of the PiCamera module should be through PiCar.get_image"
             )
@@ -355,7 +362,7 @@ class PiCar:
         return (double): distance in cm from object as detected by ultrasonic sensor
         """
         if self._threaded:
-            return self._ultrasonic_process.get_result()[0]
+            return self._redis.get("dist_ps_result")
         else:
             # activate trigger
             GPIO.output(self._ultrasonic_trigger, GPIO.HIGH)
@@ -372,29 +379,55 @@ class PiCar:
             # compute one way distance in cm from a two way time in seconds
             return (echo_end - echo_start) * 340 * 100 / 2
 
-    def get_image(self):
+    def get_distance_time(self):
         """
-        returns an image object
+        returns the last time distance was updated in redis
         NOTE: only valid if the program is threaded
         """
         if not self._threaded:
             raise SystemExit(
                 "FATAL: get_image can only be called when PiCar is run in threaded mode"
             )
+        return self._redis.get("dist_update_time")
 
-        return self._camera_process.get_result()[0]
+    def get_image(self):
+        """
+        If a cam_task is specified by the user, then returns the
+        result of that function.
+        Otherwise returns an image object which can be processed by OpenCV
+        NOTE: only valid if the program is threaded
+        """
+        if not self._threaded:
+            raise SystemExit(
+                "FATAL: get_image can only be called when PiCar is run in threaded mode"
+            )
+        if self.cam_task is None:
+            # TODO unpack image from bytes
+            return self._redis.get("cam_ps_result")
+        else:
+            return self._redis.get("cam_ps_result")
+
+    def get_image_time(self):
+        """
+        returns the last time image was updated in redis
+        NOTE: only valid if the program is threaded
+        """
+        if not self._threaded:
+            raise SystemExit(
+                "FATAL: get_image can only be called when PiCar is run in threaded mode"
+            )
+        return self._redis.get("cam_update_time")
 
     def __repr__(self):
         """
         Format PiCar for print representation
         print(PiCar) will show currently configured pins
         TODO: Add additional variables (i.e. simulated or not, whether all PWMs are configured, etc)
-        TODO fix version
         TODO: Add config filename
-        with open("./VERSION", "r") as ver:
-            version = ver.read().strip()
-        print("ok")
         """
+        with open(os.path.join(os.path.dirname(__file__), "test.txt"), "r") as ver:
+            version = ver.read().strip()
+
         entries = [
             ["State"],
             ["Motor", self.motor_state],
@@ -431,7 +464,7 @@ class PiCar:
             ["Echo", self._ultrasonic_echo],
         ]
 
-        rep = f"PiCar Version 0.3.x:\n"
+        rep = f"PiCar Version {version}:\n"
 
         col_sizes = compute_column_lengths(entries)
 

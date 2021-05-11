@@ -18,7 +18,23 @@ PiCar assumes specific wiring of your components for use in simulated hardware m
 
 # Installation
 
-The following will install the package and all dependencies:
+You will first need to install redis with the following command:
+
+```bash
+
+sudo apt install redis -y
+
+```
+
+Verify redis is installed and running with:
+
+```bash
+
+service redis status
+
+```
+
+The following will install the package and all python dependencies:
 
 ```bash
 pip3 install git+https://github.com/ESE205/PiCar
