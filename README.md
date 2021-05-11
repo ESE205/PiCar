@@ -1,22 +1,41 @@
 # PiCar
+
 Module to Support ESE205 PiCar Platform
 
 The PiCar comes equipped with a variety of sensors. In order to facilitate off-car development, this module provides a wrapper around the code to interact with several key car components. This way, you can test your code with your own hardware before attempting to test it on the car. The following table describes how you should interact with the available sensors:
 
-| Sensor | Method |
-|---|---|
-| Camera | Use as Normal UNLESS threaded=True, in which case use PiCar.get_image() |
-| DC Motor | Use PiCar.set_motor(DutyCycle) |
-| Servo(s) | Use PiCar.set_[servo_name]_servo(value) |
-| ADC | Use functions as normal, but use the PiCar.adc variable instead of your own mcp variable |
-| Ultrasonic | Use PiCar.read_distance() |
+| Sensor     | Method                                                                                   |
+| ---------- | ---------------------------------------------------------------------------------------- |
+| Camera     | Use as Normal UNLESS threaded=True, in which case use PiCar.get_image()                  |
+| DC Motor   | Use PiCar.set_motor(DutyCycle)                                                           |
+| Servo(s)   | Use PiCar.set\_[servo_name]\_servo(value)                                                |
+| ADC        | Use functions as normal, but use the PiCar.adc variable instead of your own mcp variable |
+| Ultrasonic | Use PiCar.read_distance()                                                                |
 
 For examples of PiCar.[function_name] interaction, see [Usage](#Usage)
 
-PiCar assumes specific wiring of your components for use in simulated hardware mode. See  [Hardware Connection](#Hardware_Connection) for the default configuration (reccomended), or see [Configuration](#Configuration) to see how to specify your own hardware setup.
+PiCar assumes specific wiring of your components for use in simulated hardware mode. See [Hardware Connection](#Hardware_Connection) for the default configuration (reccomended), or see [Configuration](#Configuration) to see how to specify your own hardware setup.
 
 # Installation
-The following will install the package and all dependencies:
+
+You will first need to install redis with the following command:
+
+```bash
+
+sudo apt install redis -y
+
+```
+
+Verify redis is installed and running with:
+
+```bash
+
+service redis status
+
+```
+
+The following will install the package and all python dependencies:
+
 ```bash
 pip3 install git+https://github.com/ESE205/PiCar
 ```
@@ -52,6 +71,7 @@ configure.configure_car(car)
 ```
 
 Quick rundown of helpful commands:
+
 ```python
 
 # import PiCar class
@@ -66,8 +86,12 @@ car = PiCar(mock_car=True, pins=None, config_name=None)
 # i.e. provide servo configuration for car 3
 car = PiCar(mock_car=False, pins=None, config_name="PICAR_CONFIG_CAR3.txt")
 
+# A method which passes the image through the thread to the PiCar main class
+def send_image(img):
+    return img
+
 # initialize PiCar in threaded mode
-car = PiCar(mock_car=False, threaded=True)
+car = PiCar(mock_car=False, threaded=True, cam_task=send_image)
 
 # turn on the DC motor- duty_cycle ranges 0-100, forward is optional but is either True (forward) or False (backward)
 car.set_motor(100)
@@ -85,7 +109,7 @@ car.configure_swivel_servo_positions(2, 7, 12)
 car.configure_steer_servo_positions(4, 9, 12)
 
 # set the servo positions
-# range for servo functions is -10 (down/left) to 10 (up/right) with 0 being center 
+# range for servo functions is -10 (down/left) to 10 (up/right) with 0 being center
 car.set_nod_servo(-10)
 car.set_swivel_servo(0)
 car.set_steer_servo(10)
@@ -108,6 +132,7 @@ print(car)
 ```
 
 # PiCar.configure
+
 The configure module is set up to help handle servo inconsistency across hardware. Running `configure.configure_car` will give you the opportunity to generate a configuraton file with the left, middle, and right servo positions for your specific hardware, which will then be used on initialization of the PiCar module.
 
 ```python
@@ -144,17 +169,40 @@ To remove the need for complicated timing considerations, the PiCar supports thr
 
 > NOTE: If using threaded mode, the PiCamera module cannot be instantiated in any user code. To get images from the camera, only the PiCar.get_image() method should be used.
 
+When the PiCar is running in threaded mode, it must have a `cam_task` parameter. This is a python function which will be performed upon the images in the same thread as the taking of the pictures, and will return a result, which will be returned upon a call to `PiCar.get_image()`. This method takes a single parameter, an image taken with the PiCamera, and can return whatever you like. This approach allows you to offload image processing to a different thread, and reduce the amount of data being passed between processes, which will improve timing consistency. There are several examples below.
+
 ```python
 
 # import PiCar class
 from picar import PiCar
 
+# A method which passes the image through the thread to the PiCar main class
+# This would achieve the same result as the current PiCar get_image() implementation
+def send_image(img):
+    return img
+
 # initialize PiCar in threaded mode
-car = PiCar(mock_car=False, threaded=True)
+car = PiCar(mock_car=False, threaded=True, cam_task=send_image)
+
+img = car.get_image() # returns an image if one is available, or None
+
+# A method which performs some processing on the image, and returns an angle
+def get_angle(img):
+    hsv = cv2Color(img, cv2.COLOR_BGR2HSV)
+    mask = cv2.inRange(hsv, (100, 100, 200), (150, 150, 250))
+    moments = cv2.moments(mask)
+    # ... other code
+    # compute the angle
+    return angle
+
+# initialize PiCar in threaded mode
+car = PiCar(mock_car=False, threaded=True, cam_task=get_angle)
+
+img = car.get_image() # returns an angle if one is available, or none
 
 ```
 
-Threaded mode spawns two threads- one for ultrasonic readings, and one for the PiCamera. Each sets a target sample rate. When a reading from either is requested, *only the most recent reading will be returned*. All other readings will be discarded.
+Threaded mode spawns two threads- one for ultrasonic readings, and one for the PiCamera. Each sets a target sample rate. When a reading from either is requested, _only the most recent reading will be returned_. All other readings will be discarded.
 
 ```python
 
@@ -175,62 +223,62 @@ dist = car.read_distance()
 
 While the ADC can be used the same way as you would normally interface with an ADC, we have set up the ADC for the PiCar to have specific chanels tied to different functionality.
 
-| ADC Channel | Function |
-|---|---|
-| 0 | Photo Resistor |
-| 1 | - |
-| 2 | - |
-| 3 | - |
-| 4 | - |
-| 5 | - |
-| 6 | - |
-| 7 | On/Off Switch |
+| ADC Channel | Function       |
+| ----------- | -------------- |
+| 0           | Photo Resistor |
+| 1           | -              |
+| 2           | -              |
+| 3           | -              |
+| 4           | -              |
+| 5           | -              |
+| 6           | -              |
+| 7           | On/Off Switch  |
 
 # Hardware Connecton for Simulated Hardware <a name="Hardware_Connection"></a>
 
 ## DC Motor
 
 | Motor Driver Pin Label | Motor Driver Pin Number | Pi Pin Label | Pi Pin Number |
-|---|---|---|---|
-| ENA | - | GPIO06 | 31 |
-| IN1 | - | GPIO13 | 33 |
-| IN2 | - | GPIO26 | 35 |
+| ---------------------- | ----------------------- | ------------ | ------------- |
+| ENA                    | -                       | GPIO06       | 31            |
+| IN1                    | -                       | GPIO13       | 33            |
+| IN2                    | -                       | GPIO26       | 35            |
 
 ## Servos
 
-| Servo Pin Label | Servo Pin Number | Pi Pin Label | Pi Pin Number |
-|---|---|---|---|
-| Nod Servo Signal | - | GPIO17 | 11 |
-| Swivel Servo Signal | - | GPIO27 | 13 |
-| Steer Servo Signal | - | GPIO22 | 15 |
+| Servo Pin Label     | Servo Pin Number | Pi Pin Label | Pi Pin Number |
+| ------------------- | ---------------- | ------------ | ------------- |
+| Nod Servo Signal    | -                | GPIO17       | 11            |
+| Swivel Servo Signal | -                | GPIO27       | 13            |
+| Steer Servo Signal  | -                | GPIO22       | 15            |
 
 ## ADC
 
 **NOTE**: See [ADC Channels](#ADC_Channels) for which channel should be tied to which physical component
 
 | ADC Pin Label | ADC Pin Number | Pi Pin Label | Pi Pin Number |
-|---|---|---|---|
-| VDD | 16 | 3v3 | 1 |
-| VREF | 15 | 3v3 | 1 |
-| AGND | 14 | GND | 6 |
-| CLK | 13 | SCLK | 40 |
-| DOUT | 12 | MISO | 21 |
-| DIN | 11 | MOSI | 19 |
-| CS | 10 | CE1 | 26 |
-| DGND | 9 | GND | 6 |
+| ------------- | -------------- | ------------ | ------------- |
+| VDD           | 16             | 3v3          | 1             |
+| VREF          | 15             | 3v3          | 1             |
+| AGND          | 14             | GND          | 6             |
+| CLK           | 13             | SCLK         | 40            |
+| DOUT          | 12             | MISO         | 21            |
+| DIN           | 11             | MOSI         | 19            |
+| CS            | 10             | CE1          | 26            |
+| DGND          | 9              | GND          | 6             |
 
 ## Ultrasonic
 
 **WARNING**: Remember that the Ultrasonic Echo uses 5V logic, so it needs to be stepped down via a 1K and 2K resistor
 
 | Ultrasonic Pin Label | Ultrasonic Pin Number | Pi Pin Label | Pi Pin Number |
-|---|---|---|---|
-| Trigger | - | GPIO23 | 16 |
-| Echo | - | GPIO24 | 18 |
+| -------------------- | --------------------- | ------------ | ------------- |
+| Trigger              | -                     | GPIO23       | 16            |
+| Echo                 | -                     | GPIO24       | 18            |
 
 # Configuration <a name="Configuration"></a>
 
-There are two main options for configuration of the PiCar module.
+There are four main options for configuration of the PiCar module.
 
 ## Servo Range
 
@@ -255,7 +303,7 @@ When initializing the PiCar class, you can pass a `pins` argument which will ove
 ```python
 
 # for the following variables, provide your own pin numbers
-motor_enable = 10 
+motor_enable = 10
 motor_pin_1 = 11
 motor_pin_2 = 12
 servo_nod = 13
@@ -270,11 +318,32 @@ car = PiCar(mock_car=True, pins=pins)
 
 ```
 
+## Camera Resolution and Framerate <a name="CameraResolutionandFramerate"></a>
+
+It is possible to configure the framerate and resolution of the PiCar class when operating in threaded mode.
+
+These default to `(640, 368)` for your resolution, and `15fps` for your framerate. Trying to set these too large or too high could lead to a performance bottleneck, so modify this value cautiously. Additionally, the framerate is only a target value, not a gauranteed value.
+
+```py
+picar = PiCar(threaded=True, camera_target_rate=15, camera_resolution=(640,368))
+```
+
+## Ultrasonic Target Rate <a name="UltrasonicTargetRate"></a>
+
+It is possible to configure the target rate for ultrasonic distance sample collection when operating in threaded mode.
+
+The PiCar class defaults to `10` samples per second. This is only a target value, setting it significantly higher will not guarentee the specified target rate, and could lead to performance impacts on your code.
+
+```py
+picar = PiCar(threaded=True, ultrasonic_target_rate=10)
+```
+
 # Module Function Documentation <a name="FunctionDoc"></a>
 
 ## State Variables
 
 You have access to state variables for the following:
+
 - nod_servo_state
 - swivel_servo_state
 - steer_servo_state
@@ -291,14 +360,14 @@ car.steer_servo_state
 
 Initialize the PiCar Module
 
-*Arguments*:
+_Arguments_:
 
 **mock_car (bool) (Optional) (Default=True)**: True for simulated hardware, False to run on actual PiCar
 
 **pins (tuple) (Optional) (Default=None)**: List of Custom pins to be used in simulated hardware, in following order:
 (motor_enable, motor_pin_1, motor_pin_2, servo_nod, servo_swivel, servo_steer, ultrasonic_trigger, ultrasonic_echo)
 
-*Examples:*
+_Examples:_
 
 ```python
 # init car with mock hardware
@@ -310,18 +379,20 @@ car = PiCar(False)
 # init car with mock hardware and custom pins
 car = PiCar(True, pins=pins)
 ```
+
 ---
+
 ## set_motor
 
 Sets the Duty Cycle and Direction of the DC Motor
 
-*Arguments*:
+_Arguments_:
 
 **duty_cycle (int)**: Duty Cycle for DC Motor between 0 and 100
 
 **forward (bool) (Optional) (Default=True)**: True for forward direction, False for reverse direction
 
-*Examples:*
+_Examples:_
 
 ```python
 # set duty cycle to half
@@ -330,12 +401,14 @@ car.set_motor(50)
 # set duty cycle to half in reverse direction
 car.set_motor(50, forward=False)
 ```
+
 ---
+
 ## stop
 
 Stop the hardware - will kill PWM instance for all motors and servos
 
-*Examples:*
+_Examples:_
 
 ```python
 # kill car
@@ -346,82 +419,94 @@ car.stop()
 car = PiCar()
 # do something with the car
 ```
+
 ---
+
 ## configure_nod_servo_positions
 
 Allows user to provide alternate servo positions for nod servo in mock hardware.
 PiCar assumes a default of 5 for left, 7.5 for middle, and 10 for right.
 
-*Arguments*:
+_Arguments_:
 
 **left (int)**: servo duty cycle for left position
 **middle (int)**: servo duty cycle for middle position
 **right (int)**: servo duty cycle for right position
 
-*Examples:*
+_Examples:_
 
 ```python
 # for a servo with a range 0-14
 car.configure_nod_servo_positons(0, 7, 14)
 ```
+
 ---
+
 ## set_nod_servo
 
 Sets the nod servo to the specified relative Duty Cycle.
 
-`set_nod_servo` uses internal left, middle, and right positions and maps the `value` argument to them via linear interpolation. For example, with `left=0, middle=5, right=10` and `value=5`, set_nod_servo will set the nod servo duty cycle to `7.5`, whereas a `value=-5` would yield a duty cycle of `2.5`. 
+`set_nod_servo` uses internal left, middle, and right positions and maps the `value` argument to them via linear interpolation. For example, with `left=0, middle=5, right=10` and `value=5`, set_nod_servo will set the nod servo duty cycle to `7.5`, whereas a `value=-5` would yield a duty cycle of `2.5`.
 
 The left, middle, and right values can be configured via `configure_nod_servo_positons`.
 
-*Arguments:*
+_Arguments:_
 
 **value (int)**: Between -10 and 10, -10 being max down/left, 0 being middle/center, and 10 being max up/right
 
-*Examples:*
+_Examples:_
 
 ```python
 # set nod servo to point max up/right
 car.set_nod_servo(10)
 ```
+
 ---
+
 ## configure_swivel_servo_positions
 
 See `configure_nod_servo_positons`
 
 ---
+
 ## set_swivel_servo
 
 See `set_nod_servo`
 
 ---
+
 ## configure_steer_servo_positions
 
 See `configure_nod_servo_positons`
 
 ---
+
 ## set_steer_servo
 
 See `set_nod_servo`
 
 ---
+
 ## read_distance
 
 Reads the ultrasonic sensor and returns calculated distance.
 
 **Return Value (float)**: distance in cm from object as detected by ultrasonic sensor
 
-*Examples:*
+_Examples:_
 
 ```python
 # get distance as calculated via the ultrasonic sensor
 distance = car.read_distance()
 ```
+
 ---
+
 ## adc
 
 The MCP3008 ADC can be accessed via the PiCar `adc` class variable exactly how you would normally interface with an ADC.
 
-*Examples:*
+_Examples:_
 
 ```python
 # read the adc 0 channel

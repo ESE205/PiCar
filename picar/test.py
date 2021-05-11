@@ -2,7 +2,7 @@ from picar import PiCar
 from time import sleep as wait
 
 
-def execute_test(pi_car_instance: PiCar):
+def execute_test(pi_car_instance: PiCar) -> None:
     print("test motor range: off -> 50% -> 100% -> off")
     pi_car_instance.set_motor(0)
     wait(0.5)

@@ -1,8 +1,7 @@
 from picar import PiCar
-from time import sleep as wait
 
 
-def configure_car(pi_car_instance: PiCar):
+def configure_car(pi_car_instance: PiCar) -> None:
 
     print("beginning configuration...")
 
@@ -31,47 +30,47 @@ def configure_car(pi_car_instance: PiCar):
         for description, position, function in [
             (
                 "middle for nod servo",
-                pi_car_instance._servo_nod_middle,
+                pi_car_instance.nod_servo.middle,
                 pi_car_instance.set_nod_servo,
             ),
             (
                 "low end for nod servo",
-                pi_car_instance._servo_nod_left,
+                pi_car_instance.nod_servo.low,
                 pi_car_instance.set_nod_servo,
             ),
             (
                 "high end for nod servo",
-                pi_car_instance._servo_nod_right,
+                pi_car_instance.nod_servo.high,
                 pi_car_instance.set_nod_servo,
             ),
             (
                 "middle for swivel servo",
-                pi_car_instance._servo_swivel_middle,
+                pi_car_instance.swivel_servo.middle,
                 pi_car_instance.set_swivel_servo,
             ),
             (
                 "low end for swivel servo",
-                pi_car_instance._servo_swivel_left,
+                pi_car_instance.swivel_servo.low,
                 pi_car_instance.set_swivel_servo,
             ),
             (
                 "high end for swivel servo",
-                pi_car_instance._servo_swivel_right,
+                pi_car_instance.swivel_servo.high,
                 pi_car_instance.set_swivel_servo,
             ),
             (
                 "middle for steer servo",
-                pi_car_instance._servo_steer_middle,
+                pi_car_instance.steer_servo.middle,
                 pi_car_instance.set_steer_servo,
             ),
             (
                 "low end for steer servo",
-                pi_car_instance._servo_steer_left,
+                pi_car_instance.steer_servo.low,
                 pi_car_instance.set_steer_servo,
             ),
             (
                 "high end for steer servo",
-                pi_car_instance._servo_steer_middle,
+                pi_car_instance.steer_servo.high,
                 pi_car_instance.set_steer_servo,
             ),
         ]:
@@ -85,3 +84,5 @@ def configure_car(pi_car_instance: PiCar):
                 )
 
             config.write(f"{int(final_position)}\n")
+
+    print("Config written to file")
