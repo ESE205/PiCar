@@ -14,7 +14,7 @@ import os.path
 
 class PiCar:
     """
-    Class to interface with PiCar Hardware
+    Class to interface with PiCar Hardware 
     """
 
     # Global Variables
