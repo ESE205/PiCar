@@ -36,17 +36,17 @@ class PiCar:
     _servo_global_pwm = None
 
     _servo_nod_pin, _servo_nod_pwm = (None, None)
-    _servo_nod_left, _servo_nod_middle, _servo_nod_right = (295, 425, 662)
+    _servo_nod_left, _servo_nod_middle, _servo_nod_right = (290, 310, 330)
 
     nod_servo_state = 0
 
     _servo_swivel_pin, _servo_swivel_pwm = (None, None)
-    _servo_swivel_left, _servo_swivel_middle, _servo_swivel_right = (140, 310, 476)
+    _servo_swivel_left, _servo_swivel_middle, _servo_swivel_right = (290, 310, 330)
 
     swivel_servo_state = 0
 
     _servo_steer_pin, _servo_steer_pwm = (None, None)
-    _servo_steer_left, _servo_steer_middle, _servo_steer_right = (280, 370, 500)
+    _servo_steer_left, _servo_steer_middle, _servo_steer_right = (290, 310, 330)
 
     steer_servo_state = 0
 
