@@ -10,6 +10,7 @@ from picar.ParallelTask import ParallelTask
 
 import pkg_resources
 import os.path
+import smbus
 
 
 class PiCar:
@@ -57,6 +58,8 @@ class PiCar:
     _camera_process, _ultrasonic_process = (None, None)
 
     adc = None
+    
+    _bus = smbus.SMBus(1)
 
     def __init__(self, mock_car=True, pins=None, config_name=None, threaded=False):
         """
@@ -599,8 +602,69 @@ class PiCar:
         """
 
         return rep
+    
+    # ACCELEROMETER MPU-6050
+    # Adapted from: https://www.electronicwings.com/raspberry-pi/mpu6050-accelerometergyroscope-interfacing-with-raspberry-pi
+    def _MPU_Init(self):
+        Device_Address = 0x68   # MPU6050 device address
+        PWR_MGMT_1     = 0x6B
+        SMPLRT_DIV     = 0x19
+        CONFIG         = 0x1A
+        GYRO_CONFIG    = 0x1B
+        INT_ENABLE     = 0x38
 
+        #write to sample rate register
+        self._bus.write_byte_data(Device_Address, SMPLRT_DIV, 7)
+        #Write to power management register
+        self._bus.write_byte_data(Device_Address, PWR_MGMT_1, 1)
+        #Write to Configuration register
+        self._bus.write_byte_data(Device_Address, CONFIG, 0)
+        #Write to Gyro configuration register
+        self._bus.write_byte_data(Device_Address, GYRO_CONFIG, 24)
+        #Write to interrupt enable register
+        self._bus.write_byte_data(Device_Address, INT_ENABLE, 1)
 
+    def MPU_Read(self, val2read):
+        # 1-xaccel, 2-yaccel, 3-zaccel, 4-xgyro, 5-ygyro, 6-zgyro
+        #some MPU6050 Registers and their Address
+        Device_Address = 0x68   # MPU6050 device address
+        ACCEL_XOUT_H = 0x3B
+        ACCEL_YOUT_H = 0x3D
+        ACCEL_ZOUT_H = 0x3F
+        GYRO_XOUT_H  = 0x43
+        GYRO_YOUT_H  = 0x45
+        GYRO_ZOUT_H  = 0x47
+
+        addr = ACCEL_XOUT_H
+
+        if (val2read == 2):
+            addr = ACCEL_YOUT_H
+        elif (val2read == 3):
+            addr = ACCEL_ZOUT_H
+        elif (val2read == 4):
+            addr = GYRO_XOUT_H
+        elif (val2read == 5):
+            addr = GYRO_YOUT_H
+        elif (val2read == 6):
+            addr = GYRO_ZOUT_H
+
+        #Accelero and Gyro value are 16-bit
+        high = self._bus.read_byte_data(Device_Address, addr)
+        low  = self._bus.read_byte_data(Device_Address, addr+1)
+    
+        #concatenate higher and lower value
+        value = ((high << 8) | low)
+        #to get signed value from mpu6050
+        if(value > 32768):
+            value = value - 65536
+   
+        if (val2read < 4):   # accel reading
+            value = value/16384.0
+        else:                # gyro reading
+            value = value/131.0
+      
+        return value    
+        
 def compute_column_lengths(data):
     lengths = []
     index = 0
