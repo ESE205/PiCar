@@ -362,7 +362,7 @@ PiCar assumes a default of 5 for left, 7.5 for middle, and 10 for right.
 
 ```python
 # for a servo with a range 0-14
-car.configure_nod_servo_positons(0, 7, 14)
+car.configure_nod_servo_positions(0, 7, 14)
 ```
 ---
 ## set_nod_servo
