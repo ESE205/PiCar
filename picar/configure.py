@@ -71,7 +71,7 @@ def configure_car(pi_car_instance: PiCar):
             ),
             (
                 "high end for steer servo",
-                pi_car_instance._servo_steer_middle,
+                pi_car_instance._servo_steer_right,
                 pi_car_instance.set_steer_servo,
             ),
         ]:
