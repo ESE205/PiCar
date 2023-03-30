@@ -1,14 +1,17 @@
 from time import time, sleep
-import RPi.GPIO as GPIO
-#from picamera.array import PiRGBArray
-#from picamera import PiCamera
+#import RPi.GPIO as GPIO
 
-"""
+from picamera.array import PiRGBArray
+from picamera import PiCamera
+
+
 def ps_image_stream(queue, resolution=(1280, 720), framerate=30):
-    # The process function to take photos from the camera
-    # queue: multiprocessing.Manager.Queue = queue to store image data in
-    # resolution: (width: Int, height: Int) = resolution of images to take
-    # framerate: Int = target FPS
+    """
+    The process function to take photos from the camera
+    queue: multiprocessing.Manager.Queue = queue to store image data in
+    resolution: (width: Int, height: Int) = resolution of images to take
+    framerate: Int = target FPS
+    """
     try:
         camera = PiCamera()
         camera.resolution = resolution
@@ -21,7 +24,7 @@ def ps_image_stream(queue, resolution=(1280, 720), framerate=30):
             rawCapture.truncate(0)
     except KeyboardInterrupt:
         pass
-"""
+
 
 def ps_ultrasonic_dist(queue, ECHO_PIN, TRIG_PIN, target_sample_rate=10):
     """
@@ -41,14 +44,18 @@ def ps_ultrasonic_dist(queue, ECHO_PIN, TRIG_PIN, target_sample_rate=10):
 
             if time() > nextTime:
                 # trigger a reading
-                GPIO.output(TRIG_PIN, True)
+                #GPIO.output(TRIG_PIN, True)
+                TRIG_PIN.value = 1
                 sleep(TRIG_TIME)
-                GPIO.output(TRIG_PIN, False)
+                #GPIO.output(TRIG_PIN, False)
+                TRIG_PIN.value = 0
 
                 # find the start and end of the ultrasonic pulse
-                while GPIO.input(ECHO_PIN) == 0:
+                #while GPIO.input(ECHO_PIN) == 0:
+                while ECHO_PIN.value == 0:
                     start_time = time()
-                while GPIO.input(ECHO_PIN) == 1:
+                #while GPIO.input(ECHO_PIN) == 1:
+                while ECHO_PIN.value == 1:
                     end_time = time()
 
                 # Speed of sound 34300 cm/sec

@@ -1,19 +1,26 @@
-import RPi.GPIO as GPIO
+import RPi.GPIO as GPIO  # now only used for the "cleanup()" method
+# board is required for all CircuitPython libraries to use
+from board import SCL,SDA,SCLK,SCLK_1,MISO,MOSI,CE0,CE1,D6,D8,D11,D13,D17,D18,D19,D22,D23,D24,D27
+from digitalio import DigitalInOut, Direction, Pull  # GPIO commands
+import pwmio  # PWM GPIO commands
 import time
 
-import Adafruit_PCA9685 as PWM_HAT
-from Adafruit_GPIO.GPIO import RPiGPIOAdapter as Adafruit_GPIO_Adapter
-import Adafruit_MCP3008
+#import Adafruit_PCA9685 as PWM_HAT
+#from Adafruit_GPIO.GPIO import RPiGPIOAdapter as Adafruit_GPIO_Adapter
+from busio import I2C, SPI  # busio commands
+from adafruit_pca9685 import PCA9685, PWMChannel
+#from Adafruit_MCP3008 import MCP3008
+from adafruit_mcp3xxx.mcp3008 import MCP3008
 
+#from picar.CarProcesses import ps_image_stream, ps_ultrasonic_dist
 from picar.CarProcesses import ps_ultrasonic_dist
-from picar.fixedCamera import ps_image_stream
+from picar.mitrevCamera import ps_image_stream
 from picar.ParallelTask import ParallelTask
 
 import pkg_resources
 import os.path
 import smbus
 
-GPIO.setwarnings(False)    # Ignore warning for now
 
 class PiCar:
     """
@@ -33,33 +40,40 @@ class PiCar:
     _simulated_hardware = None
 
     _motor_enable, _motor_pin_1, _motor_pin_2, _motor_pwm = (None, None, None, None)
+    # added for update
+    _motor_enable_out, _motor_in1_out, _motor_in2_out = (None, None, None)
 
     motor_state = 0
 
     _servo_global_pwm = None
 
-    _servo_nod_pin, _servo_nod_pwm = (None, None)
+    #_servo_nod_pin, _servo_nod_pwm = (None, None)
+    _servo_nod_pin, _servo_nod_out, _servo_nod_pwm = (None, None, None)
     _servo_nod_left, _servo_nod_middle, _servo_nod_right = (290, 310, 330)
 
     nod_servo_state = 0
 
-    _servo_swivel_pin, _servo_swivel_pwm = (None, None)
+    #_servo_swivel_pin, _servo_swivel_pwm = (None, None)
+    _servo_swivel_pin, _servo_swivel_out, _servo_swivel_pwm = (None, None, None)
     _servo_swivel_left, _servo_swivel_middle, _servo_swivel_right = (290, 310, 330)
 
     swivel_servo_state = 0
 
-    _servo_steer_pin, _servo_steer_pwm = (None, None)
+    #_servo_steer_pin, _servo_steer_pwm = (None, None)
+    _servo_steer_pin, _servo_steer_out, _servo_steer_pwm = (None, None, None)
     _servo_steer_left, _servo_steer_middle, _servo_steer_right = (290, 310, 330)
 
     steer_servo_state = 0
 
-    _ultrasonic_trigger, _ultrasonic_echo = (None, None)
+    #_ultrasonic_trigger, _ultrasonic_echo = (None, None)
+    _ultrasonic_trigger, _ultrasonic_trigger_out, _ultrasonic_echo, _ultrasonic_echo_in = (None, None, None, None)
 
     _threaded = None
 
     _camera_process, _ultrasonic_process = (None, None)
 
     adc = None
+    pca = None
     
     _bus = smbus.SMBus(1)
 
@@ -85,25 +99,27 @@ class PiCar:
 
         self._simulated_hardware = mock_car
 
-        GPIO.setmode(GPIO.BOARD)
+        #GPIO.setmode(GPIO.BOARD)  # no longer used
 
         print("configuring pins...")
 
         if pins is not None and mock_car is True:
             # default pins modified, validate custom pins
-            #if len(pins) is not 8:
+            #if len(pins) is not 8:  # syntax error
             if len(pins) != 8:
                 raise SystemExit(
                     f"Invalid number of pins supplied: expected 8, found {len(pins)}"
                 )
         elif mock_car is True:
             # specify default pins for mock hardware
-            pins = (31, 33, 35, 11, 13, 15, 16, 18)
+            # pins = (31, 33, 35, 11, 13, 15, 16, 18)       # board / chip numbering
+            pins = (D6, D13, D19, D17, D27, D22, D23, D24)  # broadcom / board numbering
         else:
             # specify default pins for real hardware
             if pins is not None:
                 print("Custom pins overridden - not allowed when mock_car is False")
-            pins = (11, 13, 12, 0, 1, 2, 23, 24)
+            # pins = (11, 13, 12, 0, 1, 2, 23, 24)
+            pins = (D17, D27, D18, 0, 1, 2, D11, D8)  # Servos are the Adeept Motor HAT PWM0, P
         self._init_pins(pins)
 
         if self._simulated_hardware:
@@ -121,24 +137,37 @@ class PiCar:
             print(
                 "Any attempt to use the PiCamera module in another context will crash your program"
             )
-            self._camera_process = ParallelTask(ps_image_stream, ((640, 360), 15))
+            self._camera_process = ParallelTask(ps_image_stream, ((640, 368), 15))
             self._ultrasonic_process = ParallelTask(
-                ps_ultrasonic_dist, (self._ultrasonic_echo, self._ultrasonic_trigger)
+            #    ps_ultrasonic_dist, (self._ultrasonic_echo, self._ultrasonic_trigger)
+                ps_ultrasonic_dist, (self._ultrasonic_echo_in, self._ultrasonic_trigger_out)
             )
             # give the camera a bit to wake up
             time.sleep(1)
 
         print("initializing software SPI")
         # initialize software SPI
-        gpio_adapter = Adafruit_GPIO_Adapter(GPIO, mode=GPIO.BOARD)
-        clk_pin = 40
-        miso_pin = 21
-        mosi_pin = 19
-        cs_pin = 26
+        #gpio_adapter = Adafruit_GPIO_Adapter(GPIO, mode=GPIO.BOARD)
+        #clk_pin = 40
+        #miso_pin = 21
+        #mosi_pin = 19
+        #cs_pin = 26
+        #spi_bus = SPI(clock=SCLK_1, MISO=MISO, MOSI=MOSI)
+        #cs = DigitalInOut(CE1)  
+        spi_bus = SPI(clock=SCLK, MISO=MISO, MOSI=MOSI)  # Need to revisit... SCLK_1, CE1
+        cs = DigitalInOut(CE0)  
+        cs.direction = Direction.INPUT
 
-        self.adc = Adafruit_MCP3008.MCP3008(
-            clk=clk_pin, cs=cs_pin, miso=miso_pin, mosi=mosi_pin, gpio=gpio_adapter
-        )
+        #self.adc = Adafruit_MCP3008.MCP3008(
+        #    clk=clk_pin, cs=cs_pin, miso=miso_pin, mosi=mosi_pin, gpio=gpio_adapter)
+        self.adc = MCP3008(spi_bus, cs)  # To use: channel = AnalogIn(self.adc, MCP.P0) or MCP.P1 ... MCP.P7
+
+        print("initializing software I2C")
+        # initialize software I2C
+        i2c_bus = I2C(SCL, SDA)
+        self.pca = PCA9685(i2c_bus)
+        self.pca.frequency = 60  # To use: self._servo_global_pwm.channels[0].duty_cycle = 0 or 0x7FFF (50%) or 0xFFFF (100%)
+        print(f'Freq set to: {self.pca.frequency}')
 
         print("looking for servo configuration file...")
 
@@ -217,50 +246,81 @@ class PiCar:
         ) = pins
 
         # setup motor pins
-        GPIO.setup(self._motor_enable, GPIO.OUT, initial=GPIO.LOW)
-        GPIO.setup(self._motor_pin_1, GPIO.OUT, initial=GPIO.LOW)
-        GPIO.setup(self._motor_pin_2, GPIO.OUT, initial=GPIO.LOW)
+        #GPIO.setup(self._motor_enable, GPIO.OUT, initial=GPIO.LOW)
+        #GPIO.setup(self._motor_pin_1, GPIO.OUT, initial=GPIO.LOW)
+        #GPIO.setup(self._motor_pin_2, GPIO.OUT, initial=GPIO.LOW)
+        self._motor_enable_out = DigitalInOut(self._motor_enable)
+        self._motor_enable_out.direction = Direction.OUTPUT  # To use:  self._motor_enable_out.value = 1 or = 0
+        self._motor_enable_out.value = 0
+        self._motor_in1_out = DigitalInOut(self._motor_pin_1)
+        self._motor_in1_out.direction = Direction.OUTPUT
+        self._motor_in1_out.value = 0
+        self._motor_in2_out = DigitalInOut(self._motor_pin_2)
+        self._motor_in2_out.direction = Direction.OUTPUT
+        self._motor_in2_out.value = 0
 
         # setup servo pins
         if self._simulated_hardware:
-            GPIO.setup(self._servo_nod_pin, GPIO.OUT)
-            GPIO.setup(self._servo_swivel_pin, GPIO.OUT)
-            GPIO.setup(self._servo_steer_pin, GPIO.OUT)
+            #GPIO.setup(self._servo_nod_pin, GPIO.OUT)
+            #GPIO.setup(self._servo_swivel_pin, GPIO.OUT)
+            #GPIO.setup(self._servo_steer_pin, GPIO.OUT)
+            self._servo_nod_out = DigitalInOut(self._servo_nod_pin)
+            self._servo_nod_out.direction = Direction.OUTPUT  # To use:  self._servo_nod_out.value = 1 or = 0
+            self._servo_swivel_out = DigitalInOut(self._servo_swivel_pin)
+            self._servo_swivel_out.direction = Direction.OUTPUT
+            self._servo_steer_out = DigitalInOut(self._servo_steer_pin)
+            self._servo_steer_out.direction = Direction.OUTPUT
 
         # setup ultrasonic pins
-        GPIO.setup(self._ultrasonic_trigger, GPIO.OUT, initial=GPIO.LOW)
-        GPIO.setup(self._ultrasonic_echo, GPIO.IN)
+        #GPIO.setup(self._ultrasonic_trigger, GPIO.OUT, initial=GPIO.LOW)
+        #GPIO.setup(self._ultrasonic_echo, GPIO.IN)
+        self._ultrasonic_trigger_out = DigitalInOut(self._ultrasonic_trigger)
+        self._ultrasonic_trigger_out.direction = Direction.OUTPUT  # To use:  self._ultraonic_trigger_out.value = 1 or 0
+        self._ultrasonic_trigger_out.value = 0
+        self._ultrasonic_echo_in = DigitalInOut(self._ultrasonic_echo)
+        self._ultrasonic_echo_in.direction = Direction.INPUT
 
     def _init_mock_car(self):
         """
         Initialize car variables for use with RPi Treated as Mock Car
         """
 
-        self._servo_nod_pwm = GPIO.PWM(self._servo_nod_pin, 50)
-        self._servo_swivel_pwm = GPIO.PWM(self._servo_swivel_pin, 50)
-        self._servo_steer_pwm = GPIO.PWM(self._servo_steer_pin, 50)
+        #self._servo_nod_pwm = GPIO.PWM(self._servo_nod_pin, 50)
+        #self._servo_swivel_pwm = GPIO.PWM(self._servo_swivel_pin, 50)
+        #self._servo_steer_pwm = GPIO.PWM(self._servo_steer_pin, 50)
+        self._servo_nod_pwm = pwmio.PWMOut(self._servo_nod_pin, frequency=50, duty_cycle=0)
+        self._servo_swivel_pwm = pwmio.PWMOut(self._servo_swivel_pin, frequency=50, duty_cycle=0)
+        self._servo_steer_pwm = pwmio.PWMOut(self._servo_steer_pin, frequency=50, duty_cycle=0)
 
         self.configure_nod_servo_positions(5, 7.5, 10)
         self.configure_swivel_servo_positions(5, 7.5, 10)
         self.configure_steer_servo_positions(5, 7.5, 10)
 
-        self._servo_nod_pwm.start(self._servo_nod_middle)
-        self._servo_swivel_pwm.start(self._servo_swivel_middle)
-        self._servo_steer_pwm.start(self._servo_steer_middle)
+        #self._servo_nod_pwm.start(self._servo_nod_middle)
+        #self._servo_swivel_pwm.start(self._servo_swivel_middle)
+        #self._servo_steer_pwm.start(self._servo_steer_middle)
+        self._servo_nod_pwm.duty_cycle = self._servo_nod_middle  # Use this to set duty cycle
+        self._servo_swivel_pwm.duty_cycle = self._servo_swivel_middle
+        self._servo_steer_pwm.duty_cycle = self._servo_steer_middle
 
-        self._motor_pwm = GPIO.PWM(self._motor_enable, 1000)
-        self._motor_pwm.start(0)
+        self._motor_pwm = pwmio.PWMOut(self._motor_enable, frequency=1000, duty_cycle=0)
+        self._motor_pwm.duty_cycle = 0
         pass
 
     def _init_car(self):
         """
         Initialize car variables for use with the actual Adeept Car
         """
-        self._servo_global_pwm = PWM_HAT.PCA9685()
-        self._servo_global_pwm.set_pwm_freq(60)
+        #self._servo_global_pwm = PWM_HAT.PCA9685()
+        #self._servo_global_pwm.set_pwm_freq(60)
+        self._servo_global_pwm = PWMChannel(self.pca, index=0)  # Using PCA9685, channel 0
+        servo = self._servo_global_pwm(self._servo_nod_pin, frequency=50, duty_cyle=0)
+        servo.duty_cycle = 0x7fff
 
-        self._motor_pwm = GPIO.PWM(self._motor_enable, 1000)
-        self._motor_pwm.start(0)
+        #self._motor_pwm = GPIO.PWM(self._motor_enable, 1000)
+        #self._motor_pwm.start(0)
+        self._motor_pwm = pwmio.PWMOut(self._motor_enable, frequency=1000, duty_cycle=0)
+        self._motor_pwm.duty_cycle = 0
 
         pass
 
@@ -271,9 +331,13 @@ class PiCar:
         """
         duty_cycle = duty_cycle if duty_cycle < 100 else 100
         duty_cycle = duty_cycle if duty_cycle >= 0 else 0
-        GPIO.output(self._motor_pin_1, GPIO.LOW if forward else GPIO.HIGH)
-        GPIO.output(self._motor_pin_2, GPIO.HIGH if forward else GPIO.LOW)
-        self._motor_pwm.ChangeDutyCycle(duty_cycle)
+        #GPIO.output(self._motor_pin_1, GPIO.LOW if forward else GPIO.HIGH)
+        #GPIO.output(self._motor_pin_2, GPIO.HIGH if forward else GPIO.LOW)
+        self._motor_in1_out.value = 0 if forward else 1
+        self._motor_in2_out.value = 1 if forward else 0
+
+        #self._motor_pwm.ChangeDutyCycle(duty_cycle)
+        self._motor_pwm.duty_cycle = duty_cycle
         self.motor_state = duty_cycle
 
     def reset(self):
@@ -290,11 +354,15 @@ class PiCar:
         """
         Stop the hardware - will kill PWM instance for all motors and servos, and cleanup GPIO
         """
-        self._motor_pwm.stop()
+        #self._motor_pwm.stop()
+        self._motor_pwm.deinit()
         if self._simulated_hardware:
-            self._servo_nod_pwm.stop()
-            self._servo_swivel_pwm.stop()
-            self._servo_steer_pwm.stop()
+            #self._servo_nod_pwm.stop()
+            #self._servo_swivel_pwm.stop()
+            #self._servo_steer_pwm.stop()
+            self._servo_nod_pwm.deinit()
+            self._servo_swivel_pwm.deinit()
+            self._servo_steer_pwm.deinit()
 
         GPIO.cleanup()
 
@@ -318,13 +386,16 @@ class PiCar:
         # handle special input cases
         if raw:
             if servo == PiCar.SERVO_NOD:
-                self._servo_global_pwm.set_pwm(self._servo_nod_pin, 0, raw)
+                #self._servo_global_pwm.set_pwm(self._servo_nod_pin, 0, raw)
+                self._servo_global_pwm.PWMOut(self._servo_nod_pin, frequency=1000, duty_cycle=0)
                 self.nod_servo_state = raw
             elif servo == PiCar.SERVO_SWIVEL:
-                self._servo_global_pwm.set_pwm(self._servo_swivel_pin, 0, raw)
+                #self._servo_global_pwm.set_pwm(self._servo_swivel_pin, 0, raw)
+                self._servo_global_pwm.PWMOut(self._servo_swivel_pin, frequency=1000, duty_cycle=0)
                 self.nod_swivel_state = raw
             elif servo == PiCar.SERVO_STEER:
-                self._servo_global_pwm.set_pwm(self._servo_steer_pin, 0, raw)
+                #self._servo_global_pwm.set_pwm(self._servo_steer_pin, 0, raw)
+                self._servo_global_pwm.PWMOut(self._servo_steer_pin, frequency=1000, duty_cycle=0)
                 self.nod_steer_state = raw
             return
         if not (isinstance(value, int) or isinstance(value, float)):
@@ -370,22 +441,21 @@ class PiCar:
 
         if self._simulated_hardware:
             if servo == PiCar.SERVO_NOD:
-                self._servo_nod_pwm.ChangeDutyCycle(duty_cycle)
+                self._servo_nod_pwm.duty_cycle = duty_cycle
             elif servo == PiCar.SERVO_SWIVEL:
-                self._servo_swivel_pwm.ChangeDutyCycle(duty_cycle)
+                self._servo_swivel_pwm.duty_cycle = duty_cycle
             elif servo == PiCar.SERVO_STEER:
-                self._servo_steer_pwm.ChangeDutyCycle(duty_cycle)
+                self._servo_steer_pwm.duty_cycle = duty_cycle
         else:
             if servo == PiCar.SERVO_NOD:
-                self._servo_global_pwm.set_pwm(self._servo_nod_pin, 0, int(duty_cycle))
+                #self._servo_global_pwm.set_pwm(self._servo_nod_pin, 0, int(duty_cycle))
+                self._servo_global_pwm.PWMChannel(self._servo_nod_pin, frequency=1000, duty_cycle=0)
             elif servo == PiCar.SERVO_SWIVEL:
-                self._servo_global_pwm.set_pwm(
-                    self._servo_swivel_pin, 0, int(duty_cycle)
-                )
+                #self._servo_global_pwm.set_pwm(self._servo_swivel_pin, 0, int(duty_cycle))
+                self._servo_global_pwm.PWMOut(self._servo_swivel_pin, frequency=1000, duty_cycle=0)                
             elif servo == PiCar.SERVO_STEER:
-                self._servo_global_pwm.set_pwm(
-                    self._servo_steer_pin, 0, int(duty_cycle)
-                )
+                #self._servo_global_pwm.set_pwm(self._servo_steer_pin, 0, int(duty_cycle))
+                self._servo_global_pwm.PWMOut(self._servo_steer_pin, frequency=1000, duty_cycle=0)                
         if servo == PiCar.SERVO_NOD:
             self.nod_servo_state = value
         elif servo == PiCar.SERVO_SWIVEL:
@@ -500,15 +570,19 @@ class PiCar:
             return self._ultrasonic_process.get_result()[0]
         else:
             # activate trigger
-            GPIO.output(self._ultrasonic_trigger, GPIO.HIGH)
+            #GPIO.output(self._ultrasonic_trigger, GPIO.HIGH)
+            self._ultrasonic_trigger_out.value = 1
             time.sleep(0.00001)
-            GPIO.output(self._ultrasonic_trigger, GPIO.LOW)
+            #GPIO.output(self._ultrasonic_trigger, GPIO.LOW)
+            self._ultrasonic_trigger_out.value = 0
 
-            # get send and recieve time
-            while not GPIO.input(self._ultrasonic_echo):
+            # get send and receive time
+            #while not GPIO.input(self._ultrasonic_echo):
+            while not self._ultrasonic_echo_in.value:
                 pass
             echo_start = time.time()
-            while GPIO.input(self._ultrasonic_echo):
+            #while GPIO.input(self._ultrasonic_echo):
+            while self._ultrasonic_echo_in.value:
                 pass
             echo_end = time.time()
             # compute one way distance in cm from a two way time in seconds
@@ -524,7 +598,6 @@ class PiCar:
                 "FATAL: get_image can only be called when PiCar is run in threaded mode"
             )
 
-        #return self._camera_process.get()
         return self._camera_process.get_result()[0]
 
     def __repr__(self):
@@ -574,7 +647,7 @@ class PiCar:
             ["Echo", self._ultrasonic_echo],
         ]
 
-        rep = f"PiCar Version 0.3.x:\n"
+        rep = f"PiCar Version 0.4.x:\n"
 
         col_sizes = compute_column_lengths(entries)
 
