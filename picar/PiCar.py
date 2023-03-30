@@ -574,7 +574,7 @@ class PiCar:
             ["Echo", self._ultrasonic_echo],
         ]
 
-        rep = f"PiCar Version 0.3.x:\n"
+        rep = f"PiCar Version 0.4.14:\n"
 
         col_sizes = compute_column_lengths(entries)
 
