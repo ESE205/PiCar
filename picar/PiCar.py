@@ -6,7 +6,7 @@ from Adafruit_GPIO.GPIO import RPiGPIOAdapter as Adafruit_GPIO_Adapter
 import Adafruit_MCP3008
 
 from picar.CarProcesses import ps_ultrasonic_dist
-from picar.fixedCamera import ps_image_stream
+from picar.fixedCamera import ps_image_stream  # Fix for camera deprecation
 from picar.ParallelTask import ParallelTask
 
 import pkg_resources
@@ -91,7 +91,6 @@ class PiCar:
 
         if pins is not None and mock_car is True:
             # default pins modified, validate custom pins
-            #if len(pins) is not 8:
             if len(pins) != 8:
                 raise SystemExit(
                     f"Invalid number of pins supplied: expected 8, found {len(pins)}"
@@ -121,7 +120,7 @@ class PiCar:
             print(
                 "Any attempt to use the PiCamera module in another context will crash your program"
             )
-            self._camera_process = ParallelTask(ps_image_stream, ((640, 360), 15))
+            self._camera_process = ParallelTask(ps_image_stream, ((640, 368), 15))
             self._ultrasonic_process = ParallelTask(
                 ps_ultrasonic_dist, (self._ultrasonic_echo, self._ultrasonic_trigger)
             )
@@ -524,7 +523,6 @@ class PiCar:
                 "FATAL: get_image can only be called when PiCar is run in threaded mode"
             )
 
-        #return self._camera_process.get()
         return self._camera_process.get_result()[0]
 
     def __repr__(self):
@@ -574,7 +572,7 @@ class PiCar:
             ["Echo", self._ultrasonic_echo],
         ]
 
-        rep = f"PiCar Version 0.4.14:\n"
+        rep = f"PiCar Version 0.4.15:\n"
 
         col_sizes = compute_column_lengths(entries)
 

@@ -1,9 +1,9 @@
 from time import time, sleep
 import RPi.GPIO as GPIO
-#from picamera.array import PiRGBArray
-#from picamera import PiCamera
+""" Moved to fixedCamera.py to fix camera deprecation
+from picamera.array import PiRGBArray
+from picamera import PiCamera
 
-"""
 def ps_image_stream(queue, resolution=(1280, 720), framerate=30):
     # The process function to take photos from the camera
     # queue: multiprocessing.Manager.Queue = queue to store image data in
