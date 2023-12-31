@@ -1,27 +1,27 @@
 from time import time, sleep
 import RPi.GPIO as GPIO
-""" Moved to fixedCamera.py to fix camera deprecation
-from picamera.array import PiRGBArray
-from picamera import PiCamera
+from picamera2 import Picamera2
 
-def ps_image_stream(queue, resolution=(1280, 720), framerate=30):
+def ps_image_stream(queue, resolution=(640,480), framerate=25):
     # The process function to take photos from the camera
     # queue: multiprocessing.Manager.Queue = queue to store image data in
     # resolution: (width: Int, height: Int) = resolution of images to take
     # framerate: Int = target FPS
     try:
-        camera = PiCamera()
-        camera.resolution = resolution
-        camera.framerate = framerate
-        rawCapture = PiRGBArray(camera, size=resolution)
-        for frame in camera.capture_continuous(
-            rawCapture, format="bgr", use_video_port=True
-        ):
-            queue.put((frame.array, time()))
-            rawCapture.truncate(0)
+        picam2     = Picamera2()
+        cam_config = picam2.create_still_configuration({"size":resolution})
+        picam2.configure(cam_config)
+        picam2.start()
+        while True:
+           # just toss and old picture to keep queue from getting large
+           while (queue.qsize() > 1):  
+              queue.get()
+           array = picam2.capture_array("main")
+           queue.put((array, time()))
     except KeyboardInterrupt:
         pass
-"""
+    except BrokenPipeError:
+        pass
 
 def ps_ultrasonic_dist(queue, ECHO_PIN, TRIG_PIN, target_sample_rate=10):
     """
