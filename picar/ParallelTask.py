@@ -43,3 +43,10 @@ class ParallelTask:
         data = ParallelTask.get_from_queue(self._queue)
 
         return data
+
+    def stop_thread(self):
+        """
+        Method to pass in a value that will trigger the threads to stop
+        their infinite loops
+        """
+        self._process.terminate()
