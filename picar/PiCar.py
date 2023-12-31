@@ -5,8 +5,8 @@ import Adafruit_PCA9685 as PWM_HAT
 from Adafruit_GPIO.GPIO import RPiGPIOAdapter as Adafruit_GPIO_Adapter
 import Adafruit_MCP3008
 
+from picar.CarProcesses import ps_image_stream  # Fix for PiCamera2
 from picar.CarProcesses import ps_ultrasonic_dist
-from picar.fixedCamera import ps_image_stream  # Fix for camera deprecation
 from picar.ParallelTask import ParallelTask
 
 import pkg_resources
@@ -120,7 +120,7 @@ class PiCar:
             print(
                 "Any attempt to use the PiCamera module in another context will crash your program"
             )
-            self._camera_process = ParallelTask(ps_image_stream, ((640, 368), 15))
+            self._camera_process = ParallelTask(ps_image_stream, ((640, 480), 15))
             self._ultrasonic_process = ParallelTask(
                 ps_ultrasonic_dist, (self._ultrasonic_echo, self._ultrasonic_trigger)
             )
@@ -296,6 +296,11 @@ class PiCar:
             self._servo_steer_pwm.stop()
 
         GPIO.cleanup()
+
+        if self._threaded:      # clean up the threads still active
+            self._ultrasonic_process.stop_thread()
+            self._camera_process.stop_thread()
+
 
     def _calc_servo_duty_cycle(self, left, middle, right, amount, is_left):
         return (
@@ -639,7 +644,9 @@ class PiCar:
 
         addr = ACCEL_XOUT_H
 
-        if (val2read == 2):
+        if (val2read == 1):
+            addr = ACCEL_XOUT_H
+        elif (val2read == 2):
             addr = ACCEL_YOUT_H
         elif (val2read == 3):
             addr = ACCEL_ZOUT_H
