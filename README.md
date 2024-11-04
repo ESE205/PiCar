@@ -154,7 +154,9 @@ car = PiCar(mock_car=False, threaded=True)
 
 ```
 
-Threaded mode spawns two threads- one for ultrasonic readings, and one for the PiCamera. Each sets a target sample rate. When a reading from either is requested, *only the most recent reading will be returned*. All other readings will be discarded.
+Threaded mode spawns three threads- one for ultrasonic readings, one for the PiCamera and one for keyboard input. Each sets a target sample rate. When a reading from either is requested, *only the most recent reading will be returned*. All other readings will be discarded.
+
+NOTE: Make sure to use the car.stop() method when ending programs to insure that the threads are closed.
 
 ```python
 
@@ -169,7 +171,16 @@ img = car.get_image()
 
 # get ultrasonic response
 dist = car.read_distance()
+
+# get keyboard input as one char
+key = car.get_keyin()
+if (key == 'w')
+   print (f'got: {key}') # prints the w gotten
+
+car.stop()
+
 ```
+
 
 # ADC Channels <a name="ADC_Channels"></a>
 
