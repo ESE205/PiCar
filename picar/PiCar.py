@@ -5,8 +5,9 @@ import Adafruit_PCA9685 as PWM_HAT
 from Adafruit_GPIO.GPIO import RPiGPIOAdapter as Adafruit_GPIO_Adapter
 import Adafruit_MCP3008
 
-from picar.CarProcesses import ps_image_stream  # Fix for PiCamera2
+from picar.CarProcesses import ps_image_stream 
 from picar.CarProcesses import ps_ultrasonic_dist
+from picar.CarProcesses import ps_keyboard
 from picar.ParallelTask import ParallelTask
 
 import pkg_resources
@@ -57,7 +58,7 @@ class PiCar:
 
     _threaded = None
 
-    _camera_process, _ultrasonic_process = (None, None)
+    _camera_process, _ultrasonic_process, _keyboard_process = (None, None, None)
 
     adc = None
     
@@ -120,10 +121,10 @@ class PiCar:
             print(
                 "Any attempt to use the PiCamera module in another context will crash your program"
             )
-            self._camera_process = ParallelTask(ps_image_stream, ((640, 480), 15))
+            self._keyboard_process = ParallelTask(ps_keyboard, ('N') )
+            self._camera_process   = ParallelTask(ps_image_stream, ((640, 480), 15))
             self._ultrasonic_process = ParallelTask(
-                ps_ultrasonic_dist, (self._ultrasonic_echo, self._ultrasonic_trigger)
-            )
+                ps_ultrasonic_dist, (self._ultrasonic_echo, self._ultrasonic_trigger))
             # give the camera a bit to wake up
             time.sleep(1)
 
@@ -300,6 +301,7 @@ class PiCar:
         if self._threaded:      # clean up the threads still active
             self._ultrasonic_process.stop_thread()
             self._camera_process.stop_thread()
+            self._keyboard_process.stop_thread()
 
 
     def _calc_servo_duty_cycle(self, left, middle, right, amount, is_left):
@@ -530,6 +532,18 @@ class PiCar:
 
         return self._camera_process.get_result()[0]
 
+    def get_keyin(self):
+        """
+        returns an keystroke as a char
+        NOTE: only valid if the program is threaded
+        """
+        if not self._threaded:
+            raise SystemExit(
+                "FATAL: get_keyin can only be called when PiCar is run in threaded mode"
+            )
+
+        return self._keyboard_process.get_result()[0]
+
     def __repr__(self):
         """
         Format PiCar for print representation
@@ -610,26 +624,26 @@ class PiCar:
 
         return rep
     
-    # ACCELEROMETER MPU-6050
-    # Adapted from: https://www.electronicwings.com/raspberry-pi/mpu6050-accelerometergyroscope-interfacing-with-raspberry-pi
-    def _MPU_Init(self):
-        Device_Address = 0x68   # MPU6050 device address
-        PWR_MGMT_1     = 0x6B
-        SMPLRT_DIV     = 0x19
-        CONFIG         = 0x1A
-        GYRO_CONFIG    = 0x1B
-        INT_ENABLE     = 0x38
-
-        #write to sample rate register
-        self._bus.write_byte_data(Device_Address, SMPLRT_DIV, 7)
-        #Write to power management register
-        self._bus.write_byte_data(Device_Address, PWR_MGMT_1, 1)
-        #Write to Configuration register
-        self._bus.write_byte_data(Device_Address, CONFIG, 0)
-        #Write to Gyro configuration register
-        self._bus.write_byte_data(Device_Address, GYRO_CONFIG, 24)
-        #Write to interrupt enable register
-        self._bus.write_byte_data(Device_Address, INT_ENABLE, 1)
+#    # ACCELEROMETER MPU-6050
+#    # Adapted from: https://www.electronicwings.com/raspberry-pi/mpu6050-accelerometergyroscope-interfacing-with-raspberry-pi
+#    def _MPU_Init(self):
+#        Device_Address = 0x68   # MPU6050 device address
+#        PWR_MGMT_1     = 0x6B
+#        SMPLRT_DIV     = 0x19
+#        CONFIG         = 0x1A
+#        GYRO_CONFIG    = 0x1B
+#        INT_ENABLE     = 0x38
+#
+#        #write to sample rate register
+#        self._bus.write_byte_data(Device_Address, SMPLRT_DIV, 7)
+#        #Write to power management register
+#        self._bus.write_byte_data(Device_Address, PWR_MGMT_1, 1)
+#        #Write to Configuration register
+#        self._bus.write_byte_data(Device_Address, CONFIG, 0)
+#        #Write to Gyro configuration register
+#        self._bus.write_byte_data(Device_Address, GYRO_CONFIG, 24)
+#        #Write to interrupt enable register
+#        self._bus.write_byte_data(Device_Address, INT_ENABLE, 1)
 
     def MPU_Read(self, val2read):
         # 1-xaccel, 2-yaccel, 3-zaccel, 4-xgyro, 5-ygyro, 6-zgyro

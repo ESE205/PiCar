@@ -1,6 +1,7 @@
 from time import time, sleep
 import RPi.GPIO as GPIO
 from picamera2 import Picamera2
+import getch
 
 def ps_image_stream(queue, resolution=(640,480), framerate=25):
     # The process function to take photos from the camera
@@ -57,6 +58,18 @@ def ps_ultrasonic_dist(queue, ECHO_PIN, TRIG_PIN, target_sample_rate=10):
                 queue.put((dist, time()))
 
                 nextTime += 1 / target_sample_rate
+    except KeyboardInterrupt:
+        pass
+    except BrokenPipeError:
+        pass
+
+def ps_keyboard(queue, unneeded_parameter):
+    # uses getch library to get one keyboard input at a time without return
+    # queue: multiprocessing.Manager.Queue = queue to store image data in
+    try:
+        while True:
+           keyin = getch.getch() 
+           queue.put((keyin, time()))
     except KeyboardInterrupt:
         pass
     except BrokenPipeError:
