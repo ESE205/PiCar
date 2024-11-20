@@ -12,6 +12,7 @@ from picar.ParallelTask import ParallelTask
 
 import pkg_resources
 import os.path
+import os
 import smbus
 
 GPIO.setwarnings(False)    # Ignore warning for now
@@ -302,6 +303,7 @@ class PiCar:
             self._ultrasonic_process.stop_thread()
             self._camera_process.stop_thread()
             self._keyboard_process.stop_thread()
+            os.system('reset')
 
 
     def _calc_servo_duty_cycle(self, left, middle, right, amount, is_left):
