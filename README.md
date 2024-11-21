@@ -438,7 +438,19 @@ The MCP3008 ADC can be accessed via the PiCar `adc` class variable exactly how y
 # read the adc 0 channel
 car.adc.read_adc(0)
 ```
+---
+## MPU_6050 accelerometer
 
+The MPU6050 is attached to most cars.  
+NOTE: If you try to run on mock hardware without an MPU6050 attached, the class will not run.
+
+*Examples:*
+
+```python
+## 1-xaccel, 2-yaccel, 3-zaccel - in g
+## 4-xgyro, 5-ygyro, 6-zgyro - in deg/sec
+print(car.MPU_Read(2))   # will print the y acceleration
+```
 # Contributing
 
 When contributing, make sure to increment the **version** field in **setup.py**, otherwise the package will not overwrite the currently installed package on user systems.
