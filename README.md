@@ -10,7 +10,7 @@ The PiCar comes equipped with a variety of sensors. In order to facilitate off-c
 | Servo(s) | Use PiCar.set_[servo_name]_servo(value) |
 | ADC | Use functions as normal, but use the PiCar.adc variable instead of your own mcp variable |
 | Ultrasonic | Use PiCar.read_distance() |
-
+| Accelerometer | Use PiCar.MPU_Read(x) where x = 1,2,3,4,5,6 for accels & ang. velocities |
 For examples of PiCar.[function_name] interaction, see [Usage](#Usage)
 
 PiCar assumes specific wiring of your components for use in simulated hardware mode. See  [Hardware Connection](#Hardware_Connection) for the default configuration (reccomended), or see [Configuration](#Configuration) to see how to specify your own hardware setup.
