@@ -205,7 +205,7 @@ While the ADC can be used the same way as you would normally interface with an A
 |---|---|---|---|
 | ENA | - | GPIO06 | 31 |
 | IN1 | - | GPIO13 | 33 |
-| IN2 | - | GPIO26 | 35 |
+| IN2 | - | GPIO19 | 35 |
 
 ## Servos
 
